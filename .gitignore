@@ -4,7 +4,7 @@
 
 # 忽略指定的文件夹
 26IRCC_PoweredByCOD/MDK-ARM/.vscode/
-
+26IRCC_PoweredByCOD/MDK-ARM/COD_H7_Template/
 # Keil 编译输出目录
 **/Objects/
 **/Listings/
