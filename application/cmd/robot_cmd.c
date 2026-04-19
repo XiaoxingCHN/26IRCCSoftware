@@ -30,8 +30,11 @@ static Vision_Send_s vision_send_data;  // 视觉发送数据
 
 static Robot_Status_e Robot_State;//机器人整体工作状态
 
-BMI088Instance *bmi088_test; // 云台IMU
+BMI088Instance *bmi088_test;
 BMI088_Data_t bmi088_data;
+
+static float target_yaw = 0;
+
 void RobotCMDInit()
 {
     rc_data = RemoteControlInit(&huart5);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
@@ -54,17 +57,26 @@ static void RemoteControlSet(void)
         Chassis_Cmd_Send.chassis_mode =CHASSIS_ZERO_FORCE;
     }
 
-    else if (switch_is_up(rc_data[TEMP].rc.switch_left)) {
+    else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) {
         Chassis_Cmd_Send.chassis_mode = CHASSIS_NORMAL;
     }
     //差速底盘只有角速度和Vx
-    Chassis_Cmd_Send.vx = rc_data[TEMP].rc.rocker_l1;//左拨杆竖直方向，控制前后速度
-    Chassis_Cmd_Send.wz = rc_data[TEMP].rc.rocker_r_;//右拨杆左右方向，控制左右速度
+    Chassis_Cmd_Send.vx = rc_data[TEMP].rc.rocker_l1 * 20.0f;
+    Chassis_Cmd_Send.wz = rc_data[TEMP].rc.rocker_r_ * 0.08f;
+    // target_yaw += Chassis_Cmd_Send.wz;
+    //
+    // while (target_yaw - Chassis_Cmd_Send.now_yaw_angle >= 180.0f)
+    // {
+    //     target_yaw -= 360.0f;
+    // }
+    // while (target_yaw - Chassis_Cmd_Send.now_yaw_angle <= -180.0f)
+    // {
+    //     target_yaw += 360.0f;
+    // }
 }
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */
 void RobotCMDTask()
 {
-    // USBTransmit("This is RobotCMDTask\r\n", 20); // 调试用,后续删除
     VisionSend(&vision_send_data);
     RemoteControlSet();
     SubGetMessage(Chassis_Feed_Sub, (void *)&Chassis_Fetch_Data);
