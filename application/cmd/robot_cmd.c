@@ -58,7 +58,7 @@ void RobotCMDInit()
 static void RemoteControlSet(void)
 {
     if (switch_is_down(rc_data[TEMP].rc.switch_left)) {
-        Chassis_Cmd_Send.chassis_mode =CHASSIS_ZERO_FORCE;
+        Chassis_Cmd_Send.chassis_mode = CHASSIS_ZERO_FORCE;
         Chassis_Cmd_Send.target_yaw_angle = IMU_data->Yaw;
     }else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) {
         Chassis_Cmd_Send.chassis_mode = CHASSIS_NORMAL;
@@ -78,17 +78,17 @@ static void RemoteControlSet(void)
     else {
         Chassis_Cmd_Send.chassis_mode = CHASSIS_ZERO_FORCE;
     }
-    if (Chassis_Cmd_Send.wz!=0)
-      {
-        Chassis_Cmd_Send.target_yaw_angle=IMU_data->Yaw;
-      }
+    if (Chassis_Cmd_Send.wz != 0)
+    {
+        Chassis_Cmd_Send.target_yaw_angle = IMU_data->Yaw;
+    }
 
-      Chassis_Cmd_Send.yaw_angle=IMU_data->Yaw;
-  while (Chassis_Cmd_Send.target_yaw_angle - IMU_data->Yaw >= 180.0f)
+    Chassis_Cmd_Send.yaw_angle = IMU_data->Yaw;
+    while (Chassis_Cmd_Send.target_yaw_angle - IMU_data->Yaw >= 180.0f)
     {
         Chassis_Cmd_Send.target_yaw_angle -= 360.0f;
     }
-  while (Chassis_Cmd_Send.target_yaw_angle - IMU_data->Yaw <= -180.0f)
+    while (Chassis_Cmd_Send.target_yaw_angle - IMU_data->Yaw <= -180.0f)
     {
         Chassis_Cmd_Send.target_yaw_angle += 360.0f;
     }
