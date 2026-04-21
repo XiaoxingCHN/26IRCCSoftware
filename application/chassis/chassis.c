@@ -75,9 +75,9 @@ void ChassisInit() {
     Motor_Lb = DJIMotorInit(&Chassis_Motor_config);
 
     PID_Init_Config_s Yaw_Angle_Compensator_Config = {
-        .Kp = 1.0,
-        .Ki = 1.0,
-        .Kd = 0.5,
+        .Kp = 0.8,
+        .Ki = 0.0,
+        .Kd = 0.01,
         .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
         .IntegralLimit = 2000,
         .MaxOut = 5000,
@@ -159,15 +159,13 @@ void ChassisTask()
         if (Chassis_Cmd_Recv.wz == 0)
         {
             Target_wz_offset = PIDCalculate(&Yaw_Angle_Controller, -Chassis_Cmd_Recv.yaw_angle, -Chassis_Cmd_Recv.target_yaw_angle);
-            Chassis_Target_Angular_Velocity = PIDCalculate(&Yaw_Angle_Velocity_Controller, -Chassis_Cmd_Recv.yaw_angle_speed, Chassis_Cmd_Recv.wz)+ Target_wz_offset;
+            Chassis_Target_Angular_Velocity = Target_wz_offset;
         }
         else
         {
             Target_wz_offset = 0.0f; // 清除偏移量
             Chassis_Target_Angular_Velocity = PIDCalculate(&Yaw_Angle_Velocity_Controller, -Chassis_Cmd_Recv.yaw_angle_speed, Chassis_Cmd_Recv.wz);
         }
-
-
 
         break;
     default:
