@@ -81,8 +81,8 @@ void ChassisInit() {
         .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
         .IntegralLimit = 2000,
         .MaxOut = 5000,
-        .DeadBand = 5,
-        .Output_LPF_RC = 0.0,
+        .DeadBand = 2,
+        .Output_LPF_RC = 0.1,
     };
 
     PID_Init_Config_s Yaw_Angle_Velocity_Compensator_Config = {
