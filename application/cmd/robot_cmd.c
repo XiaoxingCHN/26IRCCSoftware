@@ -42,7 +42,9 @@ void RobotCMDInit()
     rc_data = RemoteControlInit(&huart5);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
     vision_recv_data = VisionInit(&huart9); // 视觉通信串口
 
-    Chassis_Cmd_Pub = PubRegister("Chassis_Cmd",sizeof(Chassis_Ctrl_Cmd_s));
+    Target_Yaw_Angele=IMU_data->Yaw;
+
+  Chassis_Cmd_Pub = PubRegister("Chassis_Cmd",sizeof(Chassis_Ctrl_Cmd_s));
     Chassis_Feed_Sub = SubRegister("Chassis_Feed",sizeof(Chassis_Upload_Data_s));
 
     Robot_State
@@ -57,6 +59,7 @@ static void RemoteControlSet(void)
 {
     if (switch_is_down(rc_data[TEMP].rc.switch_left)) {
         Chassis_Cmd_Send.chassis_mode =CHASSIS_ZERO_FORCE;
+        Chassis_Cmd_Send.target_yaw_angle = IMU_data->Yaw;
     }else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) {
         Chassis_Cmd_Send.chassis_mode = CHASSIS_NORMAL;
     }else {
@@ -75,20 +78,33 @@ static void RemoteControlSet(void)
     else {
         Chassis_Cmd_Send.chassis_mode = CHASSIS_ZERO_FORCE;
     }
+    if (Chassis_Cmd_Send.wz!=0)
+      {
+        Chassis_Cmd_Send.target_yaw_angle=IMU_data->Yaw;
+      }
 
-    Target_Yaw_Angele += rc_data[TEMP].rc.rocker_r_ * 0.005f;
-
-    while (Target_Yaw_Angele - IMU_data->Yaw >= 180.0f)
+      Chassis_Cmd_Send.yaw_angle=IMU_data->Yaw;
+  while (Chassis_Cmd_Send.target_yaw_angle - IMU_data->Yaw >= 180.0f)
     {
-        Target_Yaw_Angele -= 360.0f;
+        Chassis_Cmd_Send.target_yaw_angle -= 360.0f;
     }
-    while (Target_Yaw_Angele - IMU_data->Yaw <= -180.0f)
+  while (Chassis_Cmd_Send.target_yaw_angle - IMU_data->Yaw <= -180.0f)
     {
-        Target_Yaw_Angele += 360.0f;
+        Chassis_Cmd_Send.target_yaw_angle += 360.0f;
     }
-    Yaw_Offset = Target_Yaw_Angele - IMU_data->Yaw;
-    Chassis_Cmd_Send.offset_angle = Yaw_Offset;
-    Chassis_Cmd_Send.yaw_speed = IMU_data->Gyro[2];
+    // Target_Yaw_Angele += rc_data[TEMP].rc.rocker_r_ * 0.005f;
+    //
+    // while (Target_Yaw_Angele - IMU_data->Yaw >= 180.0f)
+    // {
+    //     Target_Yaw_Angele -= 360.0f;
+    // }
+    // while (Target_Yaw_Angele - IMU_data->Yaw <= -180.0f)
+    // {
+    //     Target_Yaw_Angele += 360.0f;
+    // }
+    // Yaw_Offset = Target_Yaw_Angele - IMU_data->Yaw;
+    // Chassis_Cmd_Send.offset_angle = Yaw_Offset;
+    Chassis_Cmd_Send.yaw_angle_speed = IMU_data->Gyro[2];
 
 }
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */

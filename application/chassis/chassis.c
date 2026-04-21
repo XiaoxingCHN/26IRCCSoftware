@@ -21,7 +21,7 @@ static DJIMotorInstance *Motor_Lf, *Motor_Lb, *Motor_Rf, *Motor_Rb;//左前1，�
 static PIDInstance Yaw_Angle_Controller, Yaw_Angle_Velocity_Controller;//用于底盘跟随yaw角度的pid控制器
 
 static float Chassis_Target_Velocity = 0,Chassis_Target_Angular_Velocity = 0;//底盘的目标线速度和角速度
-static float Temp_Target_wz = 0;
+static float Target_wz_offset = 0;
 
 static volatile float Chassis_Target_VLF = 0,Chassis_Target_VLB = 0,Chassis_Target_VRF = 0,Chassis_Target_VRB=0;//每个轮子的目标速度
 
@@ -81,7 +81,7 @@ void ChassisInit() {
         .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
         .IntegralLimit = 2000,
         .MaxOut = 5000,
-        .DeadBand = 0,
+        .DeadBand = 5,
         .Output_LPF_RC = 0.0,
     };
 
@@ -150,16 +150,30 @@ void ChassisTask()
         DisableAllMotor();
         Chassis_Target_Velocity = 0.0f;
         Chassis_Target_Angular_Velocity = 0.0f;
+
         break;
     case CHASSIS_NORMAL:
         EnableAllMotor();
         Chassis_Target_Velocity = Chassis_Cmd_Recv.vx;
+
+        if (Chassis_Cmd_Recv.wz == 0)
+        {
+            Target_wz_offset = PIDCalculate(&Yaw_Angle_Controller, -Chassis_Cmd_Recv.yaw_angle, -Chassis_Cmd_Recv.target_yaw_angle);
+            Chassis_Target_Angular_Velocity = PIDCalculate(&Yaw_Angle_Velocity_Controller, -Chassis_Cmd_Recv.yaw_angle_speed, Chassis_Cmd_Recv.wz)+ Target_wz_offset;
+        }
+        else
+        {
+            Target_wz_offset = 0.0f; // 清除偏移量
+            Chassis_Target_Angular_Velocity = PIDCalculate(&Yaw_Angle_Velocity_Controller, -Chassis_Cmd_Recv.yaw_angle_speed, Chassis_Cmd_Recv.wz);
+        }
+
+
+
         break;
     default:
         break;
     }
-    Temp_Target_wz = PIDCalculate(&Yaw_Angle_Controller, Chassis_Cmd_Recv.offset_angle, 0.0f);
-    Chassis_Target_Angular_Velocity = PIDCalculate(&Yaw_Angle_Velocity_Controller, -Chassis_Cmd_Recv.yaw_speed, Chassis_Cmd_Recv.wz);
+    // Temp_Target_wz = PIDCalculate(&Yaw_Angle_Controller, Chassis_Cmd_Recv.offset_angle, 0.0f);
 
     MecanumCalculate();
     UpdateMotorRef();

@@ -144,7 +144,9 @@ typedef struct
     float wz;           // 旋转速度
     //锁向环部分
     float offset_angle;
-    float yaw_speed;
+    float yaw_angle_speed;
+    float yaw_angle;
+    float target_yaw_angle;
 
     chassis_mode_e chassis_mode;//底盘模式
     int chassis_speed_buff;
