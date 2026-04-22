@@ -12,6 +12,7 @@
 #include "chassis.h"
 #include "robot_cmd.h"
 
+#include "ws2812.h"
 
 
 void RobotInit()
@@ -47,4 +48,5 @@ void RobotTask()
     ChassisTask();
 #endif
 
+    WS2812_Refresh();
 }

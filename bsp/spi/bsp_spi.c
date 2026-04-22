@@ -21,19 +21,19 @@ SPIInstance *SPIRegister(SPI_Init_Config_s *conf)
     instance->spi_work_mode = conf->spi_work_mode;
     instance->callback = conf->callback;
     instance->id = conf->id;
-    if (instance->spi_handle->Instance == SPI1)
-    {
-        instance->cs_pin_state = &SPIDeviceOnGoing[0];
-    }
-    else if (instance->spi_handle->Instance == SPI2)
-    {
-        instance->cs_pin_state = &SPIDeviceOnGoing[1];
-    }
-    else
-    {
-        while (1)
-            ;
-    }
+    // if (instance->spi_handle->Instance == SPI1)
+    // {
+    //     instance->cs_pin_state = &SPIDeviceOnGoing[0];
+    // }
+    // else if (instance->spi_handle->Instance == SPI2)
+    // {
+    //     instance->cs_pin_state = &SPIDeviceOnGoing[1];
+    // }
+    // else
+    // {
+    //     while (1)
+    //         ;
+    // }
     spi_instance[idx++] = instance;
     return instance;
 }
