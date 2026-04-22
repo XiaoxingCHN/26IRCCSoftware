@@ -142,8 +142,10 @@ modules/can_comm/can_comm.c \
 modules/message_center/message_center.c \
 modules/daemon/daemon.c \
 modules/alarm/buzzer.c \
+modules/grayscale/grayscale.c \
 application/chassis/chassis.c \
 application/cmd/robot_cmd.c \
+application/graysensor/graysensor.c \
 application/robot.c \
 Core/Src/i2c.c
 
@@ -224,6 +226,7 @@ C_INCLUDES =  \
 -Iapplication/chassis \
 -Iapplication/shoot \
 -Iapplication/gimbal \
+-Iapplication/graysensor \
 -Iapplication/cmd \
 -Iapplication \
 -Ibsp/dwt \
@@ -256,6 +259,7 @@ C_INCLUDES =  \
 -Imodules/message_center \
 -Imodules/daemon \
 -Imodules/alarm \
+-Imodules/grayscale \
 -Imodules \
 -IMiddlewares/ST/ARM/DSP/Inc \
 -IMiddlewares/ST/ARM/DSP/Include/dsp \

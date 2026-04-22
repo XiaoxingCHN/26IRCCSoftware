@@ -212,6 +212,23 @@ typedef struct
     // ...
 } Shoot_Upload_Data_s;
 
+/* ----------------灰度传感器控制和反馈数据----------------*/
+// cmd发布的灰度传感器控制数据,由graysensor订阅
+typedef struct
+{
+    uint8_t calib_mode;    // 校准模式 0/1
+    uint8_t analog_mode;   // 模拟模式 0/1
+    uint8_t digital_mode;  // 数字模式 0/1
+} Graysensor_Ctrl_Cmd_s;
+
+// graysensor发布的反馈数据
+typedef struct
+{
+    uint16_t sensor_values[8];  // 8路灰度传感器值
+    uint8_t data_valid;         // 数据有效标志
+    uint8_t sensor_online;      // 传感器在线状态
+} Graysensor_Upload_Data_s;
+
 #pragma pack() // 开启字节对齐,结束前面的#pragma pack(1)
 
 #endif // !ROBOT_DEF_H

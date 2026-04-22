@@ -25,6 +25,13 @@ static Subscriber_t *Chassis_Feed_Sub;//底盘反馈信息订阅者
 static Chassis_Ctrl_Cmd_s Chassis_Cmd_Send; //发送给底盘应用的信息，包括控制信息
 static Chassis_Upload_Data_s Chassis_Fetch_Data;//从底盘应用接收的反馈信息与底盘的运动状态
 
+// 灰度传感器消息中心
+static Publisher_t *Graysensor_Cmd_Pub;    // 灰度传感器控制消息发布者
+static Subscriber_t *Graysensor_Feed_Sub; // 灰度传感器反馈信息订阅者
+
+static Graysensor_Ctrl_Cmd_s Graysensor_Cmd_Send;     // 发送给灰度传感器的控制信息
+static Graysensor_Upload_Data_s Graysensor_Fetch_Data; // 从灰度传感器接收的反馈信息
+
 static RC_ctrl_t *rc_data;              // 遥控器数据,初始化时返回
 static Vision_Recv_s *vision_recv_data; // 视觉接收数据指针,初始化时返回
 static Vision_Send_s vision_send_data;  // 视觉发送数据
@@ -47,6 +54,15 @@ void RobotCMDInit()
 
   Chassis_Cmd_Pub = PubRegister("Chassis_Cmd",sizeof(Chassis_Ctrl_Cmd_s));
     Chassis_Feed_Sub = SubRegister("Chassis_Feed",sizeof(Chassis_Upload_Data_s));
+
+    // 注册灰度传感器消息
+    Graysensor_Cmd_Pub = PubRegister("Graysensor_Cmd", sizeof(Graysensor_Ctrl_Cmd_s));
+    Graysensor_Feed_Sub = SubRegister("Graysensor_Feed", sizeof(Graysensor_Upload_Data_s));
+
+    // 初始化灰度传感器控制命令 (默认模拟模式)
+    Graysensor_Cmd_Send.calib_mode = 0;    // 不校准
+    Graysensor_Cmd_Send.analog_mode = 1;   // 模拟模式开
+    Graysensor_Cmd_Send.digital_mode = 0;  // 数字模式关
 
     Robot_State
     =ROBOT_READY;
@@ -129,6 +145,9 @@ void RobotCMDTask()
 
     SubGetMessage(Chassis_Feed_Sub, (void *)&Chassis_Fetch_Data);
     PubPushMessage(Chassis_Cmd_Pub, (void *)&Chassis_Cmd_Send);
+
+    SubGetMessage(Graysensor_Feed_Sub, (void *)&Graysensor_Fetch_Data);
+    PubPushMessage(Graysensor_Cmd_Pub, (void *)&Graysensor_Cmd_Send);
 
 }
 

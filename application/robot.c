@@ -31,6 +31,8 @@ void RobotInit()
     ChassisInit();
 #endif
 
+    GraysensorInit(); // 初始化灰度传感器
+
     OSTaskInit(); // 创建基础任务
 
     // 初始化完成,开启中断
@@ -47,4 +49,5 @@ void RobotTask()
     ChassisTask();
 #endif
 
+    GraysensorTask(); // 灰度传感器任务
 }
