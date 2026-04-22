@@ -12,6 +12,7 @@
 #include "chassis.h"
 #include "robot_cmd.h"
 
+#include "ws2812.h"
 
 
 void RobotInit()
@@ -50,4 +51,5 @@ void RobotTask()
 #endif
 
     GraysensorTask(); // 灰度传感器任务
+    WS2812_Refresh();
 }
