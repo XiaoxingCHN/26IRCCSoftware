@@ -9,6 +9,7 @@
 #include "general_def.h"
 #include "dji_motor.h"
 #include "bmi088.h"
+#include "ws2812.h"
 
 // bsp
 #include "bsp_dwt.h"
@@ -34,8 +35,14 @@ static attitude_t *IMU_data;
 
 static float Target_Yaw_Angele = 0, Target_Yaw_Angular_Velocity = 0, Yaw_Offset = 0;
 
+static WS2812Instance *test_led;
+static uint16_t dead_time = 10, last_time = 0;
+static uint8_t r = 0, g = 0, b = 0, hue = 0;
+
 void RobotCMDInit()
 {
+
+    test_led = WS2812_Init(&hspi6, 1);
 
     IMU_data = INS_Init();//获取陀螺仪数据指针
 
@@ -107,6 +114,14 @@ static void RemoteControlSet(void)
     Chassis_Cmd_Send.yaw_angle_speed = IMU_data->Gyro[2];
 
 }
+
+void UpdateLED()
+{
+    hue = (uint8_t)(((IMU_data->Yaw + 180.0f) / 360.0f) * 255);
+    WS2812_HueToRGB(hue, &r, &g, &b);
+    WS2812_SetAll(test_led, r, g, b);
+}
+
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */
 void RobotCMDTask()
 {
@@ -115,7 +130,7 @@ void RobotCMDTask()
 
     SubGetMessage(Chassis_Feed_Sub, (void *)&Chassis_Fetch_Data);
     PubPushMessage(Chassis_Cmd_Pub, (void *)&Chassis_Cmd_Send);
-
+    UpdateLED();
 }
 
 
