@@ -15,6 +15,7 @@
 #include "bsp_dwt.h"
 #include "bsp_log.h"
 #include "bsp_usb.h"
+#include "cmsis_os.h"
 // 私有宏,自动将编码器转换成角度值
 #define YAW_ALIGN_ANGLE (YAW_CHASSIS_ALIGN_ECD * ECD_ANGLE_COEF_DJI) // 对齐时的角度,0-360
 #define PTICH_HORIZON_ANGLE (PITCH_HORIZON_ECD * ECD_ANGLE_COEF_DJI) // pitch水平时电机的角度,0-360
@@ -35,9 +36,11 @@ static attitude_t *IMU_data;
 
 static float Target_Yaw_Angele = 0, Target_Yaw_Angular_Velocity = 0, Yaw_Offset = 0;
 
+
 static WS2812Instance *test_led;
 static uint16_t dead_time = 10, last_time = 0;
 static uint8_t r = 0, g = 0, b = 0, hue = 0;
+
 
 void RobotCMDInit()
 {
@@ -99,7 +102,20 @@ static void RemoteControlSet(void)
     {
         Chassis_Cmd_Send.target_yaw_angle += 360.0f;
     }
-    // Target_Yaw_Angele += rc_data[TEMP].rc.rocker_r_ * 0.005f;
+    if (last_velocity>Chassis_Cmd_Send.vx)
+      {
+        trapezoid_Velocity_max=last_velocity;
+      }
+  else
+    {
+      last_velocity=Chassis_Cmd_Send.vx;
+    }
+
+  if ((abs(rc_data[TEMP].rc.rocker_l1)<10) && (fabs(IMU_data->Accel[0])>10 || fabs(IMU_data->Accel[1])>10 || fabs(IMU_data->Accel[2])>10))
+    {
+          trapezoid_Velocity_max = trapezoid_Velocity_max * 0.9f;
+    }
+  // Target_Yaw_Angele += rc_data[TEMP].rc.rocker_r_ * 0.005f;
     //
     // while (Target_Yaw_Angele - IMU_data->Yaw >= 180.0f)
     // {
