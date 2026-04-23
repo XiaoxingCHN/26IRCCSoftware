@@ -142,8 +142,10 @@ modules/can_comm/can_comm.c \
 modules/message_center/message_center.c \
 modules/daemon/daemon.c \
 modules/alarm/buzzer.c \
+modules/grayscale/grayscale.c \
 application/chassis/chassis.c \
 application/cmd/robot_cmd.c \
+application/graysensor/graysensor.c \
 application/robot.c \
 Core/Src/i2c.c
 
@@ -225,6 +227,7 @@ C_INCLUDES =  \
 -Iapplication/shoot \
 -Iapplication/gimbal \
 -Iapplication/cmd \
+-Iapplication/graysensor \
 -Iapplication \
 -Ibsp/dwt \
 -Ibsp/can \
@@ -256,6 +259,7 @@ C_INCLUDES =  \
 -Imodules/message_center \
 -Imodules/daemon \
 -Imodules/alarm \
+-Imodules/grayscale \
 -Imodules \
 -IMiddlewares/ST/ARM/DSP/Inc \
 -IMiddlewares/ST/ARM/DSP/Include/dsp \
@@ -283,6 +287,7 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 #######################################
 # link script
 LDSCRIPT = STM32H723VGTx_FLASH.ld
+
 # libraries
 LIBS = -lc -lm -lnosys -larm_cortexM7lfdp_math
 LIBDIR = -LDrivers/CMSIS/DSP/Lib/GCC
