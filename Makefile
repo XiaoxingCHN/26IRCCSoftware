@@ -282,8 +282,7 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 # LDFLAGS
 #######################################
 # link script
-LDSCRIPT = STM32H723XG_FLASH.ld
-
+LDSCRIPT = STM32H723VGTx_FLASH.ld
 # libraries
 LIBS = -lc -lm -lnosys -larm_cortexM7lfdp_math
 LIBDIR = -LDrivers/CMSIS/DSP/Lib/GCC
