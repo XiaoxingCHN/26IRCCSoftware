@@ -42,17 +42,17 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 {
   RCC_ClkInitTypeDef    clkconfig;
   uint32_t              uwTimclock;
-
   uint32_t              uwPrescalerValue;
   uint32_t              pFLatency;
-/*Configure the TIM23 IRQ priority */
-  if (TickPriority < (1UL << __NVIC_PRIO_BITS))
-  {
-  HAL_NVIC_SetPriority(TIM23_IRQn, TickPriority ,0U);
 
-  /* Enable the TIM23 global Interrupt */
-  HAL_NVIC_EnableIRQ(TIM23_IRQn);
-    uwTickPrio = TickPriority;
+  /*Configure the TIM23 IRQ priority */
+  if (TickPriority < (1UL << __NVIC_PRIO_BITS))
+   {
+     HAL_NVIC_SetPriority(TIM23_IRQn, TickPriority ,0);
+
+     /* Enable the TIM23 global Interrupt */
+     HAL_NVIC_EnableIRQ(TIM23_IRQn);
+     uwTickPrio = TickPriority;
     }
   else
   {
@@ -75,12 +75,11 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   htim23.Instance = TIM23;
 
   /* Initialize TIMx peripheral as follow:
-
-  + Period = [(TIM23CLK/1000) - 1]. to have a (1/1000) s time base.
-  + Prescaler = (uwTimclock/1000000 - 1) to have a 1MHz counter clock.
-  + ClockDivision = 0
-  + Counter direction = Up
-  */
+   * Period = [(TIM23CLK/1000) - 1]. to have a (1/1000) s time base.
+   * Prescaler = (uwTimclock/1000000 - 1) to have a 1MHz counter clock.
+   * ClockDivision = 0
+   * Counter direction = Up
+   */
   htim23.Init.Period = (1000000U / 1000U) - 1U;
   htim23.Init.Prescaler = uwPrescalerValue;
   htim23.Init.ClockDivision = 0;

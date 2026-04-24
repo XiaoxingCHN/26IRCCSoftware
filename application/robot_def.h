@@ -229,7 +229,23 @@ typedef struct
     uint8_t sensor_online;      // 传感器在线状态
 } Graysensor_Upload_Data_s;
 
+/* ----------------TOF050C控制和反馈数据----------------*/
+// cmd发布的TOF050C控制数据,由TOF050C订阅
+typedef struct
+{
+    // 控制命令字段，如果需要
+} TOF050C_Ctrl_Cmd_s;
+
+// TOF050C发布的反馈数据
+typedef struct
+{
+    uint16_t range_values[8]; // 8个传感器的测距值，前4 TOF050C，后4 TOF200C
+    uint8_t data_valid;       // 数据是否有效
+    uint8_t sensor_online;    // 传感器是否在线
+} TOF050C_Upload_Data_s;
+
 
 #pragma pack() // 开启字节对齐,结束前面的#pragma pack(1)
 
 #endif // !ROBOT_DEF_H
+

@@ -12,6 +12,7 @@
 #include "chassis.h"
 #include "robot_cmd.h"
 #include "graysensor.h"
+#include "TOF050C.h"
 
 
 void RobotInit()
@@ -32,6 +33,7 @@ void RobotInit()
 #endif
 
     GraysensorInit(); // 初始化灰度传感器
+    TOF050CInit(); // 初始化TOF050C测距传感器
 
     OSTaskInit(); // 创建基础任务
 
@@ -50,5 +52,6 @@ void RobotTask()
 #endif
 
     GraysensorTask(); // 灰度传感器任务
+    TOF050CTask(); // TOF050C测距传感器任务
 
 }

@@ -67,18 +67,30 @@ void Error_Handler(void);
 #define CS2_ACCEL_GPIO_Port GPIOC
 #define CS2_GYRO_Pin GPIO_PIN_3
 #define CS2_GYRO_GPIO_Port GPIOC
+#define ID6_Pin GPIO_PIN_5
+#define ID6_GPIO_Port GPIOA
 #define DCMI_PWDN_Pin GPIO_PIN_5
 #define DCMI_PWDN_GPIO_Port GPIOC
 #define ACC_INT_Pin GPIO_PIN_10
 #define ACC_INT_GPIO_Port GPIOE
 #define GYRO_INT_Pin GPIO_PIN_12
 #define GYRO_INT_GPIO_Port GPIOE
-#define LCD_CS_Pin GPIO_PIN_15
-#define LCD_CS_GPIO_Port GPIOE
+#define ID1_Pin GPIO_PIN_15
+#define ID1_GPIO_Port GPIOE
 #define DCMI_REST_Pin GPIO_PIN_12
 #define DCMI_REST_GPIO_Port GPIOB
-#define LCD_DC_Pin GPIO_PIN_10
-#define LCD_DC_GPIO_Port GPIOD
+#define ID5_Pin GPIO_PIN_10
+#define ID5_GPIO_Port GPIOD
+#define ID4_Pin GPIO_PIN_7
+#define ID4_GPIO_Port GPIOD
+#define ID2_Pin GPIO_PIN_3
+#define ID2_GPIO_Port GPIOB
+#define ID3_Pin GPIO_PIN_4
+#define ID3_GPIO_Port GPIOB
+#define ID7_Pin GPIO_PIN_8
+#define ID7_GPIO_Port GPIOB
+#define ID8_Pin GPIO_PIN_9
+#define ID8_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

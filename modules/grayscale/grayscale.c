@@ -16,7 +16,7 @@ static GrayscaleData_t grayscale_data;
 uint8_t tx_flag = 0;
 
 // 协议解析相关变量
-#define PACKAGE_SIZE 64  // 根据实际协议调整
+#define PACKAGE_SIZE 128  // 根据实际协议调整
 static uint8_t ir_start = 0;
 static uint8_t ir_step = 0;
 static uint8_t ir_rx_buff[PACKAGE_SIZE];
