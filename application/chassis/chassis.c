@@ -26,7 +26,7 @@ static float Target_wz_offset = 0;
 static volatile float Chassis_Target_VLF = 0,Chassis_Target_VLB = 0,Chassis_Target_VRF = 0,Chassis_Target_VRB=0;//每个轮子的目标速度
 
 void ChassisInit() {
-    //四个轮子的参数是一样的，只是ID和转速有差别从后往前看顺时针左上为ID1
+    //四个轮子的参数是一样的，只是ID和转速有差别从后往前看顺时针左上为ID201
     Motor_Init_Config_s Chassis_Motor_config ={
         .can_init_config = &hcan1, // 修改为对应的CAN接口
         .controller_param_init_config = {
