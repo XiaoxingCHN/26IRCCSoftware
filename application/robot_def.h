@@ -92,7 +92,7 @@ typedef enum
 typedef enum {
   CONTROL_REMOTE = 0,
   CONTROL_AGV,
-}contrl_mode_e;
+}Robot_Control_Mode_e;
 
 // 云台模式设置
 typedef enum
@@ -137,6 +137,11 @@ typedef struct
 
 
 /* ----------------CMD应用发布的控制数据,应当由gimbal/chassis/shoot订阅---------------- */
+typedef struct {
+  float vx;
+  float wz;
+  float target_yaw_angle;//范围值±180度
+}AGV_Control_Cmd_s; // AGV控制数据
 /**
  * @brief 对于双板情况,遥控器和pc在云台,裁判系统在底盘
  *

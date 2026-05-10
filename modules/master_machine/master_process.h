@@ -43,6 +43,8 @@ typedef struct
 
 	float target_yaw;
 	float tracing_id;
+        float cmd_state;
+        float car_speed;
         // float NeedValue1;
         // float NeedValue2;
 } Vision_Recv_s;
@@ -78,6 +80,7 @@ typedef struct
 	Bullet_Speed_e bullet_speed;
 
 	float yaw;
+        float mcu_feed_state;//单片机返回在台上还是台下
         float laser_ranging_L0;
         float laser_ranging_L1;
         float laser_ranging_R0;

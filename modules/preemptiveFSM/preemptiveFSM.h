@@ -68,7 +68,7 @@ void PfsmSched_DefaultRegister(Pfsm_t *pfsm, PfsmHandler handler,uint8_t priorit
  */
 void PfsmSched_Register(Pfsm_t *pfsm, PfsmHandler handler, uint8_t priority);
 
-/*
+/*Foidsmchfoisdjfoidsjfiojsdf
  *  @brief 向指定FSM投递事件
  *  @param pfsm PFSM实例指针
  *  @param event PFSM事件类型
