@@ -109,7 +109,7 @@ void ChassisInit() {
 		           PID_Derivative_On_Measurement | PID_OutputFilter,
 		.IntegralLimit = 2000,
 		.MaxOut = 5000,
-		.DeadBand = 2.f,
+		.DeadBand = 0.1f,
 		.Output_LPF_RC = 0.1f,
 	};
 
@@ -164,7 +164,7 @@ float ChassisAngleOffet(float cmd_yaw_speed) {
 	}
 	else {
 		Target_wz_offset = 0.0f; // 清除偏移量
-		return PIDCalculate(&Yaw_Angle_Velocity_Controller, -Chassis_Cmd_Recv.yaw_angle_speed, cmd_yaw_speed);
+		return PIDCalculate(&Yaw_Angle_Velocity_Controller, Chassis_Cmd_Recv.yaw_angle_speed, cmd_yaw_speed);
 	}
 }
 
@@ -183,6 +183,19 @@ void ChassisTask() {
 			EnableAllMotor();
 			Chassis_Target_Velocity = Chassis_Cmd_Recv.vx;
 			Chassis_Target_Angular_Velocity = ChassisAngleOffet(Chassis_Cmd_Recv.wz);
+			if (Chassis_Target_Velocity> 2*660.f) {
+
+				Chassis_Target_Velocity= 2*660.f;
+			}
+			else if (Chassis_Target_Velocity < -2*660.f) {
+				Chassis_Target_Velocity = -2*660.f;
+			}
+			if (Chassis_Target_Angular_Velocity> 660 * 0.1f) {
+				Chassis_Target_Angular_Velocity = 660 * 0.1f;
+			}
+			else if (Chassis_Target_Angular_Velocity < -660 * 0.1f) {
+				Chassis_Target_Angular_Velocity = -660 * 0.1f;
+			}
 			break; // 添加缺失的 break
 		default:
 			break;

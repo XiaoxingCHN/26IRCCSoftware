@@ -49,6 +49,13 @@ typedef struct
         // float NeedValue2;
 } Vision_Recv_s;
 
+typedef enum {
+	SEARCHING_TRAGET,
+	TRACING,
+	SEARCH_TRABLE,
+	READY_TO_PUSH,
+}Robot_Cmd_Vision_e;
+
 typedef enum
 {
 	COLOR_NONE = 0,
@@ -128,4 +135,10 @@ void VisionSetAltitude(float yaw);
  * @param laser_ranging_R1 右激光距离1
  */
 void VisionSetLaserRanging(float laser_ranging_L0, float laser_ranging_L1, float laser_ranging_R0, float laser_ranging_R1);
+
+/**
+ *  @brief 设置发送数据的小车状态
+ * @param Robot_Position 单片机当前状态,在台上还是台下,用于视觉决策
+ */
+void VisionSetState(float Robot_Position) ;
 #endif // !MASTER_PROCESS_H

@@ -89,42 +89,41 @@ void PfsmSched_Block(Pfsm_t *pfsm)
 }
 
 void PfsmSched_Run(void) {
-  while (ready_bitmap != 0) {
+    /* 无就绪 FSM，直接返回 */
+    if (ready_bitmap == 0)
+        return;
+
+    /* 选出最高优先级就绪 FSM */
     Pfsm_t *next = PfsmSched_GetHighestReady();
     if (next == NULL)
-      break;
+        return;
 
+    /* 上下文切换 */
     if (current_pfsm != next) {
-      if (current_pfsm != NULL && current_pfsm->state == PFSM_RUNNING) {
+        if (current_pfsm != NULL && current_pfsm->state == PFSM_RUNNING) {
+            current_pfsm->state = PFSM_REDAY;
+            ready_bitmap |= (1 << current_pfsm->priority);
+            ready_heads[current_pfsm->priority] = current_pfsm;
+        }
+        next->state = PFSM_RUNNING;
+        ready_bitmap &= ~(1 << next->priority);
+        if (ready_heads[next->priority] == next)
+            ready_heads[next->priority] = NULL;
+        current_pfsm = next;
+    }
+
+    /* 总是调用 handler，由 handler 自己判断 event == NONE 时做不做 */
+    PfsmEventId_e evt = current_pfsm->pending_event;
+    current_pfsm->pending_event = PFSM_EVENT_NONE;
+    current_pfsm->handler(current_pfsm, evt);
+
+    /* handler 返回后，放回就绪（除非 handler 自己调了 Block） */
+    if (current_pfsm->state == PFSM_RUNNING) {
         current_pfsm->state = PFSM_REDAY;
         ready_bitmap |= (1 << current_pfsm->priority);
         ready_heads[current_pfsm->priority] = current_pfsm;
-      }
-      next->state = PFSM_RUNNING;
-      ready_bitmap &= ~(1 << next->priority);
-      if (ready_heads[next->priority] == next) {
-        ready_heads[next->priority] = NULL;
-      }
-      current_pfsm = next;
     }
-    if (current_pfsm->pending_event == PFSM_EVENT_NONE) {
-      current_pfsm->state = PFSM_REDAY;
-      ready_bitmap |= (1 << current_pfsm->priority);
-      ready_heads[current_pfsm->priority] = current_pfsm;
-      current_pfsm = NULL;
-      continue;
-    }
-    PfsmEventId_e evt = current_pfsm->pending_event;
-    current_pfsm->pending_event = PFSM_EVENT_NONE;
-
-    current_pfsm->handler(current_pfsm, evt);
-  }
-  if (current_pfsm != NULL) {
-    current_pfsm->state = PFSM_REDAY;
-    ready_bitmap |= (1 << current_pfsm->priority);
-    ready_heads[current_pfsm->priority] = current_pfsm;
     current_pfsm = NULL;
-  }
 }
 
 static Pfsm_t *PfsmSched_GetHighestReady(void) {

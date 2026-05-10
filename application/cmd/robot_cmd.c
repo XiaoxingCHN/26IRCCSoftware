@@ -156,16 +156,17 @@ static void Chassis_Control_Send(void) {
 		case CHASSIS_ZERO_FORCE:
 			Chassis_Cmd_Send.vx = 0;
 			Chassis_Cmd_Send.wz = 0;
+			Chassis_Cmd_Send.target_yaw_angle = IMU_data->Yaw; // 维持当前角度
 			break;
 		case CHASSIS_NORMAL:
 			switch (Robot_State_Mode_Global) {
 				case CONTROL_REMOTE:
-					Chassis_Cmd_Send.vx = rc_data[TEMP].rc.rocker_l1 *0.6f;
-					Chassis_Cmd_Send.wz = rc_data[TEMP].rc.rocker_r_ * 0.4f;
+					Chassis_Cmd_Send.vx = rc_data[TEMP].rc.rocker_l1 * 1.2f;
+					Chassis_Cmd_Send.wz = rc_data[TEMP].rc.rocker_r_ * 0.01f;
 					break;
 				case CONTROL_AGV:
 					Chassis_Cmd_Send.vx = AGV_GLOBAL_CMD.vx;
-					Chassis_Cmd_Send.wz = AGV_GLOBAL_CMD.wz;
+					Chassis_Cmd_Send.wz = 0;
 					Chassis_Cmd_Send.target_yaw_angle = AGV_GLOBAL_CMD.target_yaw_angle;
 					break;
 			}
@@ -534,28 +535,106 @@ void RobotCMDTask() {
 	VisionSend();
 	RemoteControlSet();
 	Chassis_Control_Send();
-	PfsmSched_Run(); // 运行状态机调度器，自动根据优先级执行对应的状态机处理函数
-	// /* ===== AGV 决策链：先选模式 → 再执行模式 ===== */
-	// if (Chassis_Cmd_Send.chassis_mode == CHASSIS_AGV_MODE) {
-	//   ModeJudge();        // Step 1: 根据传感器条件选模式
-	//   AGV_Mode_Switch();  // Step 2: 根据模式填控制命令
-	// }
+	if (Robot_State_Mode_Global == CONTROL_AGV) {
+		PfsmSched_Run();
+	}
 
-	/*Control Code End*/
-	// 发布底盘命令与灰度传感器命令
 	PubPushMessage(Chassis_Cmd_Pub, (void *) &Chassis_Cmd_Send);
 	PubPushMessage(Graysensor_Cmd_Pub, (void *) &Graysensor_Cmd_Send);
 	PubPushMessage(TOF050C_Cmd_Pub, (void *) &TOF050C_Cmd_Send);
 }
 
+/**
+ * @brief 根据灰度传感器计算速度
+ */
+static float gray_history[8][3] = {0};
+static uint8_t gray_filter_idx = 0;
+
+static void Chassis_Speed_CalculateOfGray(void) {
+	gray_filter_idx = (gray_filter_idx + 1) % 3;
+	for (int ch = 0; ch < 8; ch++) {
+		gray_history[ch][gray_filter_idx] =
+				Graysensor_Fetch_Data.sensor_Normalized[ch];
+	}
+	float filtered[8];
+	for (int ch = 0; ch < 8; ch++) {
+		float a = gray_history[ch][0];
+		float b = gray_history[ch][1];
+		float c = gray_history[ch][2];
+		/* 三个数排一下取中间那个 */
+		if (a > b) {
+			float t = a;
+			a = b;
+			b = t;
+		}
+		if (b > c) {
+			float t = b;
+			b = c;
+			c = t;
+		}
+		if (a > b) {
+			float t = a;
+			a = b;
+			b = t;
+		}
+		filtered[ch] = b; /* 中值 */
+	}
+	float max_gray = 0;
+	int max_idx = 0;
+	for (int ch = 0; ch < 8; ch++) {
+		if (filtered[ch] > max_gray) {
+			max_gray = filtered[ch];
+			max_idx = ch;
+		}
+	}
+	/*  max_gray=0(全白) → speed_norm=1 → 全速
+	 *  max_gray=0.3     → speed_norm≈0.34 → 明显减速
+	 *  max_gray=0.5     → speed_norm≈0.13 → 很慢
+	 *  max_gray=0.7     → speed_norm≈0.03 → 几乎停了  */
+	float speed_norm = 1.0f - max_gray;
+	speed_norm = speed_norm * speed_norm * speed_norm; // 三次方
+	AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
+
+	/* 最低速度保护，防止边缘完全卡死 */
+	if (AGV_GLOBAL_CMD.vx < 0.05f)
+		AGV_GLOBAL_CMD.vx = 0.05f;
+
+	/* ====== Step 5: 转向辅助 — 哪边黑就往反方向转 ====== */
+
+	static const float turn_weight[8] = {
+		0.5f, /* I0 左 */
+		1.0f, /* I1 左 */
+		1.5f, /* I2 左 */
+		2.0f, /* I3 左 */
+		-2.0f, /* I4 右 */
+		-1.5f, /* I5 右 */
+		-1.0f, /* I6 右 */
+		-0.5f /* I7 右 */
+	};
+	if (TOF050C_Fetch_Data.range_values[0] > AGV_LASER_DISTANCE_FL ||
+	    TOF050C_Fetch_Data.range_values[1] > AGV_LASER_DISTANCE_FR ||
+	    TOF050C_Fetch_Data.range_values[2] > AGV_LASER_DISTANCE_BL ||
+	    TOF050C_Fetch_Data.range_values[3] > AGV_LASER_DISTANCE_BR) {
+		/* 检测到边缘，强制转向 */
+		AGV_GLOBAL_CMD.wz = 0.5f; // 固定转速
+	}
+	else {
+		/* 根据灰度值计算转向，黑色越重转速越快，方向由传感器位置决定 */
+		AGV_GLOBAL_CMD.wz = turn_weight[max_idx] * max_gray * 0.3f;
+	}
+	/* 航向目标保持当前朝向 */
+	AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
+}
+
 void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
-	PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+	PfsmSched_PostEvent(&Follow_Vision_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
 }
 
 void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	switch (event) {
 		case PFSM_EVENT_FINISH_LOADPLATFORM:
 			// 上台完成，进入巡台模式
+			Chassis_Speed_CalculateOfGray();
 
 			break;
 		default:
@@ -565,6 +644,31 @@ void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 
 void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	// 视觉跟随模式处理函数
+	static uint8_t last_state = 0xFF; // 0xFF 表示首次调用
+	uint8_t state = (uint8_t) vision_recv_data->cmd_state;
+	if (last_state != state) {
+		if (last_state == TRACING || last_state == SEARCH_TRABLE) {
+			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw; // ← 锁当前航向
+		}
+		last_state = state;
+	}
+	switch ((uint8_t) vision_recv_data->cmd_state) {
+		case SEARCHING_TRAGET:
+
+			// 寻找目标
+			break;
+		case TRACING:
+			AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
+			break;
+		case SEARCH_TRABLE:
+			AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
+			AGV_GLOBAL_CMD.vx = vision_recv_data->car_speed;
+			break;
+		case READY_TO_PUSH:
+			break;
+		default:
+			break;
+	}
 }
 
 void AttackAvoid_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
@@ -574,5 +678,3 @@ void AttackAvoid_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 void ReloadPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	// 掉台后自动登台模式处理函数
 }
-
-
