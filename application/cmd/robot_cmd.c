@@ -616,14 +616,14 @@ static void Chassis_Speed_CalculateOfGray(void) {
 	    TOF050C_Fetch_Data.range_values[2] > AGV_LASER_DISTANCE_BL ||
 	    TOF050C_Fetch_Data.range_values[3] > AGV_LASER_DISTANCE_BR) {
 		/* 检测到边缘，强制转向 */
-		AGV_GLOBAL_CMD.wz = 0.5f; // 固定转速
+		AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw+130.f;// 固定转速
 	}
 	else {
 		/* 根据灰度值计算转向，黑色越重转速越快，方向由传感器位置决定 */
 		AGV_GLOBAL_CMD.wz = turn_weight[max_idx] * max_gray * 0.3f;
+		AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
 	}
 	/* 航向目标保持当前朝向 */
-	AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
 }
 
 void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
