@@ -24,7 +24,7 @@
 #define VISION_USE_VCP  // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
 
-#define AGV_APPROACH_SPEED 2*660.f
+#define AGV_APPROACH_SPEED 5*660.f
 
 #define AGV_LASER_DISTANCE_FL 200// 前左
 #define AGV_LASER_DISTANCE_FR 200 // 前右
@@ -49,6 +49,7 @@
 #define CENTER_GIMBAL_OFFSET_Y 0    // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
 #define RADIUS_WHEEL 60             // 轮子半径
 #define REDUCTION_RATIO_WHEEL 1.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
+#define TOF050C_EDGE 300.f
 
 #define GYRO2GIMBAL_DIR_YAW 1   // 陀螺仪数据相较于云台的yaw的方向,1为相同,-1为相反
 #define GYRO2GIMBAL_DIR_PITCH 1 // 陀螺仪数据相较于云台的pitch的方向,1为相同,-1为相反
@@ -79,6 +80,19 @@ typedef enum {
 	APP_ONLINE,
 	APP_ERROR,
 } App_Status_e;
+
+typedef enum
+{
+    DIR_NONE = 0,
+    DIR_FRONT,
+    DIR_BACK,
+    DIR_LEFT,
+    DIR_RIGHT,
+    DIR_FRONT_LEFT,
+    DIR_FRONT_RIGHT,
+    DIR_BACK_LEFT,
+    DIR_BACK_RIGHT,
+}TOF_Flag_e;
 
 // 底盘模式设置
 /**
