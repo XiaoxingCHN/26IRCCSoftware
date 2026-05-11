@@ -85,17 +85,17 @@ void TOF050CTask()
     // TOF050C_Feedback_Data.range_values[6] = VL53L0X_readRangeSingleMillimeters(0x36); // 地址 0x36
     // TOF050C_Feedback_Data.range_values[7] = VL53L0X_readRangeSingleMillimeters(0x37); // 地址 0x37
 
-  // char tx_buf[128];
-  // int len = sprintf(tx_buf, "%d,%d,%d,%d,%d,%d\r\n",
-  //                  TOF050C_Feedback_Data.range_values[0] ,
-  //                   TOF050C_Feedback_Data.range_values[1] ,
-  //                   TOF050C_Feedback_Data.range_values[2] ,
-  //                  TOF050C_Feedback_Data.range_values[3] ,
-  //                   TOF050C_Feedback_Data.range_values[4] ,
-  //                   TOF050C_Feedback_Data.range_values[5]
-  //                   );
-  //
-  // HAL_UART_Transmit(&huart8, (uint8_t *)tx_buf, len, 100);
+  char tx_buf[128];
+  int len = sprintf(tx_buf, "%d,%d,%d,%d,%d,%d\r\n",
+                   TOF050C_Feedback_Data.range_values[0] ,
+                    TOF050C_Feedback_Data.range_values[1] ,
+                    TOF050C_Feedback_Data.range_values[2] ,
+                   TOF050C_Feedback_Data.range_values[3] ,
+                    TOF050C_Feedback_Data.range_values[4] ,
+                    TOF050C_Feedback_Data.range_values[5]
+                    );
+
+  HAL_UART_Transmit(&huart8, (uint8_t *)tx_buf, len, 100);
 
     // 设置数据有效性和在线状态
     TOF050C_Feedback_Data.data_valid = 1;   // 假设数据总是有效

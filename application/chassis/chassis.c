@@ -38,8 +38,8 @@ void ChassisInit() {
 			.speed_PID =
 			{
 				.Kp = 712.4f, // 40
-				.Ki = 23.2f,
-				.Kd = 44.856f,
+				.Ki = 22.36f,
+				.Kd = 22.365f,
 				.IntegralLimit = 5000,
 				.Improve = PID_Trapezoid_Intergral | PID_Integral_Limit |
 				           PID_Derivative_On_Measurement |
@@ -89,20 +89,20 @@ void ChassisInit() {
 	Motor_Lb = DJIMotorInit(&Chassis_Motor_config);
 
 	PID_Init_Config_s Yaw_Angle_Compensator_Config = {
-		.Kp = 0.85f,
+		.Kp = 0.35f,
 		.Ki = 0.0f,
-		.Kd = 0.1f,
+		.Kd = 0.21f,
 		// 对于角度这类由于跨越 ±180° 会发生瞬间跳变的量，绝对不能开启 PID_Derivative_On_Measurement（测量值微分）
 		// 否则跨越 180 的瞬间测量值会跳变 360，导致 D 项算出几万的数值，让电机疯摇乃至转圈
 		.Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_OutputFilter,
 		.IntegralLimit = 2000,
 		.MaxOut = 5000,
-		.DeadBand = 0.1f,
+		.DeadBand = 2.5f,
 		.Output_LPF_RC = 0.1f,
 	};
 
 	PID_Init_Config_s Yaw_Angle_Velocity_Compensator_Config = {
-		.Kp = 10.0f,
+		.Kp = 5.0f,
 		.Ki = 0.0f,
 		.Kd = 1.2f,
 		.Improve = PID_Trapezoid_Intergral | PID_Integral_Limit |
@@ -152,19 +152,21 @@ void EnableAllMotor() {
 	DJIMotorEnable(Motor_Rf);
 	DJIMotorEnable(Motor_Rb);
 }
-
+static float wz_temp;
 float ChassisAngleOffet(float cmd_yaw_speed) {
 	//航向修正算法
-	if (cmd_yaw_speed == 0) {
-		Target_wz_offset =
+	Target_wz_offset =
 				PIDCalculate(&Yaw_Angle_Controller, -Chassis_Cmd_Recv.yaw_angle,
-				             -Chassis_Cmd_Recv.target_yaw_angle);
-
+					     -Chassis_Cmd_Recv.target_yaw_angle);
+	wz_temp=PIDCalculate(&Yaw_Angle_Velocity_Controller, -Chassis_Cmd_Recv.yaw_angle_speed, cmd_yaw_speed);
+	if (cmd_yaw_speed == 0) {
+		wz_temp=0.f;
 		return Target_wz_offset;
 	}
-	else {
+	else
+		{
 		Target_wz_offset = 0.0f; // 清除偏移量
-		return PIDCalculate(&Yaw_Angle_Velocity_Controller, Chassis_Cmd_Recv.yaw_angle_speed, cmd_yaw_speed);
+		return wz_temp;
 	}
 }
 
@@ -183,12 +185,12 @@ void ChassisTask() {
 			EnableAllMotor();
 			Chassis_Target_Velocity = Chassis_Cmd_Recv.vx;
 			Chassis_Target_Angular_Velocity = ChassisAngleOffet(Chassis_Cmd_Recv.wz);
-			if (Chassis_Target_Velocity> 2*660.f) {
+			if (Chassis_Target_Velocity> 10*660.f) {
 
-				Chassis_Target_Velocity= 2*660.f;
+				Chassis_Target_Velocity= 10*660.f;
 			}
-			else if (Chassis_Target_Velocity < -2*660.f) {
-				Chassis_Target_Velocity = -2*660.f;
+			else if (Chassis_Target_Velocity < -10*660.f) {
+				Chassis_Target_Velocity = -10*660.f;
 			}
 			if (Chassis_Target_Angular_Velocity> 660 * 0.1f) {
 				Chassis_Target_Angular_Velocity = 660 * 0.1f;
