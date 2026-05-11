@@ -232,8 +232,9 @@ void RobotCMDTask()
 /**
  * @brief 判断相应位置的状态
  */
-TOF_Flag_e TOFStatusJudge(void)
+void  TOFStatusJudge(void)
 {
+    tof_idx = 0;
     // 0x04 0x08  0x02 0x01
     // FR01 FL02 BL00 BR03
     if (TOF050C_Fetch_Data.range_values[0] > TOF050C_EDGE)
@@ -304,7 +305,7 @@ static void Chassis_Speed_CalculateOfGray(void)
      *  max_gray=0.7     → speed_norm≈0.03 → 几乎停了  */
     float speed_norm = 1.0f - max_gray;
     speed_norm = speed_norm * speed_norm * speed_norm; // 三次方
-    AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
+    // AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
 
 
     /* 最低速度保护，防止边缘完全卡死 */
@@ -323,64 +324,73 @@ static void Chassis_Speed_CalculateOfGray(void)
         1.0f,  /* I6 右 */
         0.5f   /* I7 右 */
     };
-    // tof_idx = 0;
-    //  TOFStatusJudge();
-    //  switch (tof_dir)
-    //  {
+     TOFStatusJudge();
+     switch (tof_dir)
+     {
+     case DIR_BACK_RIGHT://右后
+         break;
+     case DIR_BACK_LEFT://左后
+         break;
+     case DIR_BACK://后
 
+         break;
+     case DIR_FRONT_RIGHT://右前
+         Temp_Yaw_turn = IMU_data->Yaw;
+         AGV_GLOBAL_CMD.vx = -AGV_GLOBAL_CMD.vx*10.f;
+         Back_Flag = true;
+         break;
+     case DIR_RIGHT://右
 
-    //  case DIR_BACK_RIGHT:
-    //      AGV_GLOBAL_CMD.vx=-AGV_GLOBAL_CMD.vx;
-    //      break;
-    //  case DIR_BACK_LEFT:
-    //     AGV_GLOBAL_CMD.vx=-AGV_GLOBAL_CMD.vx;
-    //      break;
-    //  case DIR_BACK://后
-    //
-    //      break;
-    //  case DIR_FRONT_RIGHT:
-    //
-    //      break;
-    //  case DIR_RIGHT://右
-    //      AGV_GLOBAL_CMD.vx=100.f;
-    //      AGV_GLOBAL_CMD.target_yaw_angle=IMU_data->Yaw-20.f;
-    //      break;
-    //  case DIR_FRONT_LEFT:
-    //
-    //  break;
-    //  case DIR_LEFT://左
-    // AGV_GLOBAL_CMD.vx=100.f;
-    // AGV_GLOBAL_CMD.target_yaw_angle=IMU_data->Yaw+20.f;
-    //      break;
-    //  case DIR_FRONT:
-    //
-    //      break;
-    //  default:
-    //      break;
-    //  }
-    // AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
-    //
-    // if (max_gray < 0.19) tof_dir=DIR_NONE;
-    if ((TOF050C_Fetch_Data.range_values[0] > TOF050C_EDGE || TOF050C_Fetch_Data.range_values[1] > TOF050C_EDGE ||
-         TOF050C_Fetch_Data.range_values[2] > TOF050C_EDGE || TOF050C_Fetch_Data.range_values[3] > TOF050C_EDGE) &&
-        !Back_Flag)
+         break;
+     case DIR_FRONT_LEFT:
+         Temp_Yaw_turn = IMU_data->Yaw;
+         AGV_GLOBAL_CMD.vx = -AGV_GLOBAL_CMD.vx*10.f;
+         Back_Flag = true;
+     break;
+     case DIR_LEFT://左
+
+         break;
+     case DIR_FRONT:
+         Temp_Yaw_turn = IMU_data->Yaw;
+         AGV_GLOBAL_CMD.vx = -AGV_GLOBAL_CMD.vx*10.f;
+         Back_Flag = true;
+         break;
+     default:
+         AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
+         break;
+     }
+if (Back_Flag)
+{
+    if (max_gray < 0.19)
     {
-        Back_Flag = true;
-        Temp_Yaw_turn = IMU_data->Yaw;
+        tof_dir=DIR_NONE;
+        AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 150.f;
+        AGV_GLOBAL_CMD.vx = 0;
+        if (abs(IMU_data->Yaw - AGV_GLOBAL_CMD.target_yaw_angle) < 20.f)
+            Back_Flag = false;
     }
-    if (Back_Flag)
-    {
-        AGV_GLOBAL_CMD.vx = -AGV_GLOBAL_CMD.vx;
-        if (max_gray < 0.19)
-        {
-            AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 150.f;
-            AGV_GLOBAL_CMD.vx = 0;
-            if (abs(IMU_data->Yaw - AGV_GLOBAL_CMD.target_yaw_angle) < 20.f)
-                Back_Flag = false;
-        }
-    }
-    if (vision_recv_data->cmd_state==TRACING) PfsmSched_PostEvent(&Follow_Vision_Pfsm,PFSM_EVENT_FINISH_LOADPLATFORM);
-    /* 航向目标保持当前朝向 */
+}
+        //         AGV_GLOBAL_CMD.vx = 0;}
+    // if ((TOF050C_Fetch_Data.range_values[0] > TOF050C_EDGE || TOF050C_Fetch_Data.range_values[1] > TOF050C_EDGE ||
+    //      TOF050C_Fetch_Data.range_values[2] > TOF050C_EDGE || TOF050C_Fetch_Data.range_values[3] > TOF050C_EDGE) &&
+    //     !Back_Flag)
+    // {
+    //     Back_Flag = true;
+    //     Temp_Yaw_turn = IMU_data->Yaw;
+    // }
+    // if (Back_Flag)
+    // {
+    //     AGV_GLOBAL_CMD.vx = -AGV_GLOBAL_CMD.vx;
+    //     if (max_gray < 0.19)
+    //     {
+    //         AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 150.f;
+    //         AGV_GLOBAL_CMD.vx = 0;
+    //         if (abs(IMU_data->Yaw - AGV_GLOBAL_CMD.target_yaw_angle) < 20.f)
+    //             Back_Flag = false;
+    //     }
+    // }
+    // if (vision_recv_data->cmd_state==TRACING) PfsmSched_PostEvent(&Follow_Vision_Pfsm,PFSM_EVENT_FINISH_LOADPLATFORM);
+    // /* 航向目标保持当前朝向 */
 }
 static void LoadPlatform(void)
 {
