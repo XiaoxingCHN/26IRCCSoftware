@@ -76,6 +76,13 @@ static AGV_Control_Cmd_s AGV_GLOBAL_CMD = {
 	.SttartFlag = false,
 }; // AGV模式下才会启用的全局模式
 // AGV模式下的相关参数
+static float gray_history[8][3] = {0};
+static uint8_t gray_filter_idx = 0;
+float Temp_Yaw_turn = 0;
+bool Back_Flag = false;
+bool Front_Flag=false;
+bool RIGHT_PLUS_FRONT_FLAG = false;
+static uint8_t Pfsm_VIsion_last_state=0xFF;
 // 状态机
 Pfsm_t StartMode_Pfsm; // 最低优先级的启动模式|优先级P10
 Pfsm_t ScanPlatform_Pfsm; // 自动巡台模式倒数第二|优先级P9
@@ -139,6 +146,16 @@ static void YawAngleOFFSET(void) {
 }
 
 /**
+ * @brief 用于在自其他模式切换到AGV模式时刷新AGV状态
+ */
+static  void AGV_State_RESET(void) {
+	Temp_Yaw_turn = 0;
+	Back_Flag = false;
+	Front_Flag = false;
+	RIGHT_PLUS_FRONT_FLAG = false;
+	Pfsm_VIsion_last_state = 0xFF;
+}
+/**
  * @brief 控制输入为遥控器(调试时)的模式和控制量设置
  */
 static void RemoteControlSet(void) {
@@ -155,6 +172,9 @@ static void RemoteControlSet(void) {
 		Chassis_Cmd_Send.chassis_mode = CHASSIS_NORMAL;
 		/***********************************************************/
 		// AGV模式
+		if (Robot_State_Mode_Global != CONTROL_AGV) {
+			AGV_State_RESET();
+		}
 		Robot_State_Mode_Global = CONTROL_AGV;
 	}
 }
@@ -240,12 +260,7 @@ void TOFStatusJudge(void) {
 /**
  * @brief 根据灰度传感器计算速度
  */
-static float gray_history[8][3] = {0};
-static uint8_t gray_filter_idx = 0;
-float Temp_Yaw_turn = 0;
-bool Back_Flag = false;
-bool Front_Flag=false;
-bool RIGHT_PLUS_FRONT_FLAG = false;
+
 static void Chassis_Speed_CalculateOfGray(void) {
 	gray_filter_idx = (gray_filter_idx + 1) % 3;
 	for (int ch = 0; ch < 8; ch++) {
@@ -327,7 +342,6 @@ static void Chassis_Speed_CalculateOfGray(void) {
 			Temp_Yaw_turn = IMU_data->Yaw;
 			Front_Flag=true;
 			Back_Flag = false;
-
 			break;
 		case DIR_FRONT_RIGHT: //右前
 			Temp_Yaw_turn = IMU_data->Yaw;
@@ -384,7 +398,7 @@ static void Chassis_Speed_CalculateOfGray(void) {
 			Back_Flag = false;
 			break;
 		default:
-			if (Back_Flag==false&&Front_Flag==false)
+			if (Back_Flag==false&&Front_Flag==false&&RIGHT_PLUS_FRONT_FLAG==false)
 			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
 			else if (Back_Flag==true) {
 				AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED*speed_norm;
@@ -437,6 +451,7 @@ static void LoadPlatform(void) {
 
 void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+	PfsmSched_Block(&StartMode_Pfsm); // 阻塞启动模式状态机
 }
 
 void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
@@ -445,13 +460,17 @@ void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 
 void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	// 视觉跟随模式处理函数
-	static uint8_t last_state = 0xFF; // 0xFF 表示首次调用
+	// static uint8_t last_state = 0xFF; // 0xFF 表示首次调用
 	uint8_t state = (uint8_t) vision_recv_data->cmd_state;
-	if (last_state != state) {
-		if (last_state == TRACING || last_state == SEARCH_TRABLE) {
+	TOFStatusJudge();
+	if (tof_dir != DIR_NONE&&state!=TRACING) {
+		PfsmSched_Block(&Follow_Vision_Pfsm);
+	}
+	if (Pfsm_VIsion_last_state != state) {
+		if (Pfsm_VIsion_last_state == TRACING || Pfsm_VIsion_last_state == SEARCH_TRABLE) {
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw; // ← 锁当前航向
 		}
-		last_state = state;
+		Pfsm_VIsion_last_state = state;
 	}
 	if (tof_dir!=DIR_NONE) PfsmSched_Block(&Follow_Vision_Pfsm); // 如果TOF有障碍物,则阻塞视觉跟随状态机,等待避障完成
 	switch ((uint8_t) vision_recv_data->cmd_state) {
