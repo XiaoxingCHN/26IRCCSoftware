@@ -9,7 +9,7 @@
 #include "main.h"
 #include "stdio.h"
 
-extern IICInstance *tof_iic;  // BSP I2C 实例（由 TOF_Sensors.c 初始化）
+extern IICInstance *tof_iic; // BSP I2C 实例（由 TOF_Sensors.c 初始化）
 
 // 修改为正确的默认地址�?x29对应�?位地址�?
 #define VL6180X_DEFAULT_ADDRESS   0x29  // 7位地址
@@ -95,189 +95,187 @@ uint16_t io_timeout1;
 
 /* ---- BSP I2C 封装：VL6180X 使用 16-bit 寄存器地址 ---- */
 static inline void tof6180_mem_write(uint8_t addr_write, uint16_t reg,
-                                      uint8_t *data, uint16_t size) {
-    IICSetDeviceAddress(tof_iic, addr_write >> 1); // HAL格式→7-bit
-    IICAccessMem(tof_iic, reg, data, size, IIC_WRITE_MEM, 0); // 16-bit mem
+                                     uint8_t *data, uint16_t size) {
+	IICSetDeviceAddress(tof_iic, addr_write >> 1); // HAL格式→7-bit
+	IICAccessMem(tof_iic, reg, data, size, IIC_WRITE_MEM, 0); // 16-bit mem
 }
+
 static inline uint8_t tof6180_mem_read(uint8_t addr_write, uint16_t reg) {
-    uint8_t data = 0;
-    IICSetDeviceAddress(tof_iic, addr_write >> 1);
-    IICAccessMem(tof_iic, reg, &data, 1, IIC_READ_MEM, 0);
-    return data;
+	uint8_t data = 0;
+	IICSetDeviceAddress(tof_iic, addr_write >> 1);
+	IICAccessMem(tof_iic, reg, &data, 1, IIC_READ_MEM, 0);
+	return data;
 }
 
-void VL6180X_WR_CMD(uint16_t cmd, uint8_t data,uint8_t addr_write)
-{
-    tof6180_mem_write(addr_write, cmd, &data, 1);
+void VL6180X_WR_CMD(uint16_t cmd, uint8_t data, uint8_t addr_write) {
+	tof6180_mem_write(addr_write, cmd, &data, 1);
 }
 
-void VL6180X_WR_CMD2(uint16_t cmd, uint16_t data,uint8_t addr_write)
-{
-    uint8_t buf[2] = {(data >> 8) & 0xff, data & 0xff};
-    tof6180_mem_write(addr_write, cmd, buf, 2);
+void VL6180X_WR_CMD2(uint16_t cmd, uint16_t data, uint8_t addr_write) {
+	uint8_t buf[2] = {(data >> 8) & 0xff, data & 0xff};
+	tof6180_mem_write(addr_write, cmd, buf, 2);
 }
 
-uint8_t VL6180X_ReadByte(uint16_t reg,uint8_t addr_write,uint8_t addr_read)
-{
-    (void)addr_read; // BSP IICAccessMem 自动处理 R/W 位
-    return tof6180_mem_read(addr_write, reg);
+uint8_t VL6180X_ReadByte(uint16_t reg, uint8_t addr_write, uint8_t addr_read) {
+	(void) addr_read; // BSP IICAccessMem 自动处理 R/W 位
+	return tof6180_mem_read(addr_write, reg);
 }
 
-uint8_t VL6180X_Init(uint8_t addr_write,uint8_t addr_read)
-{
-    ptp_offset = 0;
-    scaling = 0;
-    io_timeout1 = 2;  // 重试次数（非毫秒！BSP I2C 已提供 100ms 硬件超时）
+uint8_t VL6180X_Init(uint8_t addr_write, uint8_t addr_read) {
+	ptp_offset = 0;
+	scaling = 0;
+	io_timeout1 = 2; // 重试次数（非毫秒！BSP I2C 已提供 100ms 硬件超时）
 
-    ptp_offset = VL6180X_ReadByte(SYSRANGE__PART_TO_PART_RANGE_OFFSET,addr_write,addr_read);
-    uint8_t reset=VL6180X_ReadByte(0x016,addr_write,addr_read);//check wether reset over
-    if(reset==1)
-    {
-        VL6180X_WR_CMD(0X0207,0X01,addr_write);
-        VL6180X_WR_CMD(0X0208,0X01,addr_write);
-        VL6180X_WR_CMD(0X0096,0X00,addr_write);
-        VL6180X_WR_CMD(0X0097,0XFD,addr_write);
-        VL6180X_WR_CMD(0X00E3,0X00,addr_write);
-        VL6180X_WR_CMD(0X00E4,0X04,addr_write);
-        VL6180X_WR_CMD(0X00E5,0X02,addr_write);
-        VL6180X_WR_CMD(0X00E6,0X01,addr_write);
-        VL6180X_WR_CMD(0X00E7,0X03,addr_write);
-        VL6180X_WR_CMD(0X00F5,0X02,addr_write);
-        VL6180X_WR_CMD(0X00D9,0X05,addr_write);
-        VL6180X_WR_CMD(0X00DB,0XCE,addr_write);
-        VL6180X_WR_CMD(0X02DC,0X03,addr_write);
-        VL6180X_WR_CMD(0X00DD,0XF8,addr_write);
-        VL6180X_WR_CMD(0X009F,0X00,addr_write);
-        VL6180X_WR_CMD(0X00A3,0X3C,addr_write);
-        VL6180X_WR_CMD(0X00B7,0X00,addr_write);
-        VL6180X_WR_CMD(0X00BB,0X3C,addr_write);
-        VL6180X_WR_CMD(0X00B2,0X09,addr_write);
-        VL6180X_WR_CMD(0X00CA,0X09,addr_write);
-        VL6180X_WR_CMD(0X0198,0X01,addr_write);
-        VL6180X_WR_CMD(0X01B0,0X17,addr_write);
-        VL6180X_WR_CMD(0X01AD,0X00,addr_write);
-        VL6180X_WR_CMD(0X00FF,0X05,addr_write);
-        VL6180X_WR_CMD(0X0100,0X05,addr_write);
-        VL6180X_WR_CMD(0X0199,0X05,addr_write);
-        VL6180X_WR_CMD(0X01A6,0X1B,addr_write);
-        VL6180X_WR_CMD(0X01AC,0X3E,addr_write);
-        VL6180X_WR_CMD(0X01A7,0X1F,addr_write);
-        VL6180X_WR_CMD(0X0030,0X00,addr_write);
+	ptp_offset = VL6180X_ReadByte(SYSRANGE__PART_TO_PART_RANGE_OFFSET, addr_write, addr_read);
+	uint8_t reset = VL6180X_ReadByte(0x016, addr_write, addr_read); //check wether reset over
+	if (reset == 1) {
+		VL6180X_WR_CMD(0X0207, 0X01, addr_write);
+		VL6180X_WR_CMD(0X0208, 0X01, addr_write);
+		VL6180X_WR_CMD(0X0096, 0X00, addr_write);
+		VL6180X_WR_CMD(0X0097, 0XFD, addr_write);
+		VL6180X_WR_CMD(0X00E3, 0X00, addr_write);
+		VL6180X_WR_CMD(0X00E4, 0X04, addr_write);
+		VL6180X_WR_CMD(0X00E5, 0X02, addr_write);
+		VL6180X_WR_CMD(0X00E6, 0X01, addr_write);
+		VL6180X_WR_CMD(0X00E7, 0X03, addr_write);
+		VL6180X_WR_CMD(0X00F5, 0X02, addr_write);
+		VL6180X_WR_CMD(0X00D9, 0X05, addr_write);
+		VL6180X_WR_CMD(0X00DB, 0XCE, addr_write);
+		VL6180X_WR_CMD(0X02DC, 0X03, addr_write);
+		VL6180X_WR_CMD(0X00DD, 0XF8, addr_write);
+		VL6180X_WR_CMD(0X009F, 0X00, addr_write);
+		VL6180X_WR_CMD(0X00A3, 0X3C, addr_write);
+		VL6180X_WR_CMD(0X00B7, 0X00, addr_write);
+		VL6180X_WR_CMD(0X00BB, 0X3C, addr_write);
+		VL6180X_WR_CMD(0X00B2, 0X09, addr_write);
+		VL6180X_WR_CMD(0X00CA, 0X09, addr_write);
+		VL6180X_WR_CMD(0X0198, 0X01, addr_write);
+		VL6180X_WR_CMD(0X01B0, 0X17, addr_write);
+		VL6180X_WR_CMD(0X01AD, 0X00, addr_write);
+		VL6180X_WR_CMD(0X00FF, 0X05, addr_write);
+		VL6180X_WR_CMD(0X0100, 0X05, addr_write);
+		VL6180X_WR_CMD(0X0199, 0X05, addr_write);
+		VL6180X_WR_CMD(0X01A6, 0X1B, addr_write);
+		VL6180X_WR_CMD(0X01AC, 0X3E, addr_write);
+		VL6180X_WR_CMD(0X01A7, 0X1F, addr_write);
+		VL6180X_WR_CMD(0X0030, 0X00, addr_write);
 
-        VL6180X_WR_CMD(0X0011,0X10,addr_write);
-        VL6180X_WR_CMD(0X010A,0X30,addr_write);
-        VL6180X_WR_CMD(0X003F,0X46,addr_write);
-        VL6180X_WR_CMD(0X0031,0XFF,addr_write);
-        VL6180X_WR_CMD(0X0040,0X63,addr_write);
-        VL6180X_WR_CMD(0X002E,0X01,addr_write);
-        VL6180X_WR_CMD(0X001B,0X09,addr_write);
-        VL6180X_WR_CMD(0X003E,0X31,addr_write);
-        VL6180X_WR_CMD(0X0014,0X24,addr_write);
+		VL6180X_WR_CMD(0X0011, 0X10, addr_write);
+		VL6180X_WR_CMD(0X010A, 0X30, addr_write);
+		VL6180X_WR_CMD(0X003F, 0X46, addr_write);
+		VL6180X_WR_CMD(0X0031, 0XFF, addr_write);
+		VL6180X_WR_CMD(0X0040, 0X63, addr_write);
+		VL6180X_WR_CMD(0X002E, 0X01, addr_write);
+		VL6180X_WR_CMD(0X001B, 0X09, addr_write);
+		VL6180X_WR_CMD(0X003E, 0X31, addr_write);
+		VL6180X_WR_CMD(0X0014, 0X24, addr_write);
 
-//        VL6180X_WR_CMD(0x016,0x00,addr_write);
-        return 1;
-    }
-    return 0;
+		//        VL6180X_WR_CMD(0x016,0x00,addr_write);
+		return 1;
+	}
+	return 0;
 }
 
 
-void VL6180X_SetScaling(uint8_t new_scaling,uint8_t addr_write,uint8_t addr_read)
-{
-  uint8_t const DefaultCrosstalkValidHeight = 20; // default value of SYSRANGE__CROSSTALK_VALID_HEIGHT
+void VL6180X_SetScaling(uint8_t new_scaling, uint8_t addr_write, uint8_t addr_read) {
+	uint8_t const DefaultCrosstalkValidHeight = 20; // default value of SYSRANGE__CROSSTALK_VALID_HEIGHT
 
-  // do nothing if scaling value is invalid
-  if (new_scaling < 1 || new_scaling > 3) { return; }
+	// do nothing if scaling value is invalid
+	if (new_scaling < 1 || new_scaling > 3) { return; }
 
-    scaling = new_scaling;
-  VL6180X_WR_CMD2(RANGE_SCALER, ScalerValues[scaling],addr_write);
+	scaling = new_scaling;
+	VL6180X_WR_CMD2(RANGE_SCALER, ScalerValues[scaling], addr_write);
 
-  // apply scaling on part-to-part offset
-  VL6180X_WR_CMD(SYSRANGE__PART_TO_PART_RANGE_OFFSET, ptp_offset / scaling,addr_write);
+	// apply scaling on part-to-part offset
+	VL6180X_WR_CMD(SYSRANGE__PART_TO_PART_RANGE_OFFSET, ptp_offset / scaling, addr_write);
 
-  // apply scaling on CrossTalkValidHeight
-  VL6180X_WR_CMD(SYSRANGE__CROSSTALK_VALID_HEIGHT, DefaultCrosstalkValidHeight / scaling,addr_write);
+	// apply scaling on CrossTalkValidHeight
+	VL6180X_WR_CMD(SYSRANGE__CROSSTALK_VALID_HEIGHT, DefaultCrosstalkValidHeight / scaling, addr_write);
 
-  // This function does not apply scaling to RANGE_IGNORE_VALID_HEIGHT.
+	// This function does not apply scaling to RANGE_IGNORE_VALID_HEIGHT.
 
-  // enable early convergence estimate only at 1x scaling
-  uint8_t rce = VL6180X_ReadByte(SYSRANGE__RANGE_CHECK_ENABLES,addr_write,addr_read);
-  VL6180X_WR_CMD(SYSRANGE__RANGE_CHECK_ENABLES, (rce & 0xFE) | (scaling == 1),addr_write);
+	// enable early convergence estimate only at 1x scaling
+	uint8_t rce = VL6180X_ReadByte(SYSRANGE__RANGE_CHECK_ENABLES, addr_write, addr_read);
+	VL6180X_WR_CMD(SYSRANGE__RANGE_CHECK_ENABLES, (rce & 0xFE) | (scaling == 1), addr_write);
 }
 
 
-void VL6180X_ConfigureDefault(uint8_t addr_write,uint8_t addr_read)
-{
-  VL6180X_WR_CMD(READOUT__AVERAGING_SAMPLE_PERIOD,0x30,addr_write);
-  VL6180X_WR_CMD(SYSALS__ANALOGUE_GAIN, 0x46,addr_write);
-  VL6180X_WR_CMD(SYSRANGE__VHV_REPEAT_RATE, 0xFF,addr_write);
-  VL6180X_WR_CMD2(SYSALS__INTEGRATION_PERIOD, 0x0063,addr_write);
-  VL6180X_WR_CMD(SYSRANGE__VHV_RECALIBRATE, 0x01,addr_write);
-  VL6180X_WR_CMD(SYSRANGE__INTERMEASUREMENT_PERIOD, 0x09,addr_write);
-  VL6180X_WR_CMD(SYSALS__INTERMEASUREMENT_PERIOD, 0x31,addr_write);
-  VL6180X_WR_CMD(SYSTEM__INTERRUPT_CONFIG_GPIO, 0x24,addr_write);
-  VL6180X_WR_CMD(SYSRANGE__MAX_CONVERGENCE_TIME, 0x31,addr_write);
-  VL6180X_WR_CMD(INTERLEAVED_MODE__ENABLE, 0,addr_write);
-  VL6180X_SetScaling(1,addr_write,addr_read);
+void VL6180X_ConfigureDefault(uint8_t addr_write, uint8_t addr_read) {
+	VL6180X_WR_CMD(READOUT__AVERAGING_SAMPLE_PERIOD, 0x30, addr_write);
+	VL6180X_WR_CMD(SYSALS__ANALOGUE_GAIN, 0x46, addr_write);
+	VL6180X_WR_CMD(SYSRANGE__VHV_REPEAT_RATE, 0xFF, addr_write);
+	VL6180X_WR_CMD2(SYSALS__INTEGRATION_PERIOD, 0x0063, addr_write);
+	VL6180X_WR_CMD(SYSRANGE__VHV_RECALIBRATE, 0x01, addr_write);
+	VL6180X_WR_CMD(SYSRANGE__INTERMEASUREMENT_PERIOD, 0x09, addr_write);
+	VL6180X_WR_CMD(SYSALS__INTERMEASUREMENT_PERIOD, 0x31, addr_write);
+	VL6180X_WR_CMD(SYSTEM__INTERRUPT_CONFIG_GPIO, 0x24, addr_write);
+	VL6180X_WR_CMD(SYSRANGE__MAX_CONVERGENCE_TIME, 0x31, addr_write);
+	VL6180X_WR_CMD(INTERLEAVED_MODE__ENABLE, 0, addr_write);
+	VL6180X_SetScaling(1, addr_write, addr_read);
 }
 
-void VL6180X_SetTimeout(uint16_t timeout)
-{
-  io_timeout1 = timeout;
+void VL6180X_SetTimeout(uint16_t timeout) {
+	io_timeout1 = timeout;
 }
 
-uint8_t VL6180X_Start_Range(uint8_t addr_write,uint8_t addr_read)
-{
-  VL6180X_WR_CMD(0x018,0x01,addr_write);
-  return 0;
+uint8_t VL6180X_Start_Range(uint8_t addr_write, uint8_t addr_read) {
+	VL6180X_WR_CMD(0x018, 0x01, addr_write);
+	return 0;
 }
 
-uint16_t timeoutcnt=0;
+uint16_t timeoutcnt = 0;
 
 /*poll for new sample ready */
-uint8_t VL6180X_Poll_Range(uint8_t addr_write,uint8_t addr_read)
-{
-    uint8_t status;
-    uint8_t range_status;
-    timeoutcnt = 0;  // 每个 sensor 独立计数
-    status=VL6180X_ReadByte(0x04f,addr_write,addr_read);
-    range_status=status&0x07;
-    while(range_status!=0x04)
-    {
-        timeoutcnt++;
-        if(timeoutcnt > io_timeout1)
-        {
-            break;
-        }
-        status=VL6180X_ReadByte(0x04f,addr_write,addr_read);
-        range_status=status&0x07;
-       osDelay(1);
-    }
-    return 0;
+uint8_t VL6180X_Poll_Range(uint8_t addr_write, uint8_t addr_read) {
+	uint8_t status;
+	uint8_t range_status;
+	timeoutcnt = 0; // 每个 sensor 独立计数
+	status = VL6180X_ReadByte(0x04f, addr_write, addr_read);
+	range_status = status & 0x07;
+	while (range_status != 0x04) {
+		timeoutcnt++;
+		if (timeoutcnt > io_timeout1) {
+			break;
+		}
+		status = VL6180X_ReadByte(0x04f, addr_write, addr_read);
+		range_status = status & 0x07;
+		osDelay(1);
+	}
+	return 0;
 }
 
 
 /*read range result (mm)*/
-uint8_t VL6180_Read_Range(uint8_t addr_write,uint8_t addr_read)
-{
-    int range;
-    range=VL6180X_ReadByte(0x062,addr_write,addr_read);
-    return range;
+uint8_t VL6180_Read_Range(uint8_t addr_write, uint8_t addr_read) {
+	int range;
+	range = VL6180X_ReadByte(0x062, addr_write, addr_read);
+	return range;
 }
 
 /*clear interrupt*/
-void VL6180X_Clear_Interrupt(uint8_t addr_write,uint8_t addr_read)
-{
-  VL6180X_WR_CMD(0x015,0x07,addr_write);
+void VL6180X_Clear_Interrupt(uint8_t addr_write, uint8_t addr_read) {
+	VL6180X_WR_CMD(0x015, 0x07, addr_write);
 }
 
-uint16_t VL6180X_ReadRangeSingleMillimeters(uint8_t addr_write,uint8_t addr_read)
-{
-    /*Start Single measure mode*/
-    VL6180X_Start_Range(addr_write,addr_read);
-    /* Wait for measurement ready. */
-    VL6180X_Poll_Range(addr_write,addr_read);
-    osDelay(20);
-    return (uint16_t)scaling * VL6180_Read_Range(addr_write,addr_read);
+void VL6180X_ReadRangeMultiple(const TOF_050C_WRREG regs[],
+                               uint16_t results[], uint8_t count) {
+	for (uint8_t i = 0; i < count; i++)
+		VL6180X_Start_Range(regs[i].addr_w, regs[i].addr_r);
+
+	for (uint8_t i = 0; i < count; i++)
+		VL6180X_Poll_Range(regs[i].addr_w, regs[i].addr_r);
+	osDelay(20);
+	for (uint8_t i = 0; i < count; i++)
+		results[i] = (uint16_t) scaling * VL6180_Read_Range(regs[i].addr_w, regs[i].addr_r);
+}
+
+uint16_t VL6180X_ReadRangeSingleMillimeters(uint8_t addr_write, uint8_t addr_read) {
+	/*Start Single measure mode*/
+	VL6180X_Start_Range(addr_write, addr_read);
+	/* Wait for measurement ready. */
+	VL6180X_Poll_Range(addr_write, addr_read);
+	osDelay(20);
+	return (uint16_t) scaling * VL6180_Read_Range(addr_write, addr_read);
 }
 
 /**
@@ -288,90 +286,78 @@ uint16_t VL6180X_ReadRangeSingleMillimeters(uint8_t addr_write,uint8_t addr_read
   * @retval HAL_OK: 成功 | HAL_ERROR: 失败
   */
 HAL_StatusTypeDef VL6180_ReadRegister(uint8_t dev_addr, uint16_t reg_addr, uint8_t *data) {
-    IICSetDeviceAddress(tof_iic, dev_addr);
-    IICAccessMem(tof_iic, reg_addr, data, 1, IIC_READ_MEM, 0);
-    return HAL_OK;
+	IICSetDeviceAddress(tof_iic, dev_addr);
+	IICAccessMem(tof_iic, reg_addr, data, 1, IIC_READ_MEM, 0);
+	return HAL_OK;
 }
 
 void VL6180x_ChangeAddress(uint8_t new_address_7bit) {
-
-    uint8_t data = new_address_7bit;
-    IICSetDeviceAddress(tof_iic, 0x29);
-    IICAccessMem(tof_iic, 0x0212, &data, 1, IIC_WRITE_MEM, 0);
+	uint8_t data = new_address_7bit;
+	IICSetDeviceAddress(tof_iic, 0x29);
+	IICAccessMem(tof_iic, 0x0212, &data, 1, IIC_WRITE_MEM, 0);
 }
 
-void AddressTest()
-{
-    for (uint8_t addr = 0x08; addr <= 0x77; addr++)
-    {
-        IICSetDeviceAddress(tof_iic, addr);
-        HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(tof_iic->handle, addr << 1, 1, 10);
-        if (status == HAL_OK) {
-            printf("Device found at 0x%02X\n", addr);
-        }
-    }
+void AddressTest() {
+	for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
+		IICSetDeviceAddress(tof_iic, addr);
+		HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(tof_iic->handle, addr << 1, 1, 10);
+		if (status == HAL_OK) {
+			printf("Device found at 0x%02X\n", addr);
+		}
+	}
 }
 
-void multisensor_vl6180x()
-{
-
-
+void multisensor_vl6180x() {
 	HAL_GPIO_WritePin(ID1_GPIO_Port, ID1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(ID2_GPIO_Port, ID2_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(ID3_GPIO_Port, ID3_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(ID4_GPIO_Port, ID4_Pin, GPIO_PIN_RESET);
-  // HAL_GPIO_WritePin(ID5_GPIO_Port, ID5_Pin, GPIO_PIN_RESET);
-  // HAL_GPIO_WritePin(ID6_GPIO_Port, ID6_Pin, GPIO_PIN_RESET);
-	for (uint8_t address = 0x30;address<=0x45;address++ ) {
-	  if(address == 0x30)
-	  {
-	    HAL_GPIO_WritePin(ID1_GPIO_Port, ID1_Pin, GPIO_PIN_SET);
-	    VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
-	    VL6180x_ChangeAddress(address);
-	    VL6180X_Init(0x30 << 1, (0x30 << 1) | 0x01);
-	    VL6180X_SetScaling(3,0x30 << 1, (0x30 << 1) | 0x01);
-
-	  }
-	  else if (address == 0x31)
-	  {
-	    HAL_GPIO_WritePin(ID2_GPIO_Port, ID2_Pin, GPIO_PIN_SET);
-	    VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
-	    VL6180x_ChangeAddress(address);
-	    VL6180X_Init(0x31 << 1, (0x31 << 1) | 0x01);
-	    VL6180X_SetScaling(3,0x31 << 1, (0x31 << 1) | 0x01);
-
-	  }
-	  else if(address == 0x32)
-	  {
-	    HAL_GPIO_WritePin(ID3_GPIO_Port, ID3_Pin, GPIO_PIN_SET);
-	    VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
-	    VL6180x_ChangeAddress(address);
-	    VL6180X_Init(0x32 << 1, (0x32 << 1) | 0x01);
-	    VL6180X_SetScaling(3,0x32 << 1, (0x32 << 1) | 0x01);
-
-	  }
-	  else if(address == 0x33){
-	    HAL_GPIO_WritePin(ID4_GPIO_Port, ID4_Pin, GPIO_PIN_SET);
-	    VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
-	    VL6180x_ChangeAddress(address);
-	    VL6180X_Init(0x33 << 1, (0x33 << 1) | 0x01);
-	    VL6180X_SetScaling(3,0x33 << 1, (0x33 << 1) | 0x01);
-	  }
-	  // else if (address == 0x34)
-	  // {
-	  //   HAL_GPIO_WritePin(ID5_GPIO_Port, ID5_Pin, GPIO_PIN_SET);
-	  //   VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
-	  //   VL6180x_ChangeAddress(address);
-	  //   VL6180X_Init(0x34 << 1, (0x34 << 1) | 0x01);
-	  //   VL6180X_SetScaling(3,0x34 << 1, (0x34 << 1) | 0x01);
-	  //
-	  // }
-	  // else if (address == 0x35)
-	  // {                 	 HAL_GPIO_WritePin(ID6_GPIO_Port, ID6_Pin, GPIO_PIN_SET);
-	  //   VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
-	  //   VL6180x_ChangeAddress(address);
-	  //   VL6180X_Init(0x35 << 1, (0x35 << 1) | 0x01);
-	  //   VL6180X_SetScaling(3,0x35 << 1, (0x35 << 1) | 0x01);
-	  // }
+	// HAL_GPIO_WritePin(ID5_GPIO_Port, ID5_Pin, GPIO_PIN_RESET);
+	// HAL_GPIO_WritePin(ID6_GPIO_Port, ID6_Pin, GPIO_PIN_RESET);
+	for (uint8_t address = 0x30; address <= 0x45; address++) {
+		if (address == 0x30) {
+			HAL_GPIO_WritePin(ID1_GPIO_Port, ID1_Pin, GPIO_PIN_SET);
+			VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
+			VL6180x_ChangeAddress(address);
+			VL6180X_Init(0x30 << 1, (0x30 << 1) | 0x01);
+			VL6180X_SetScaling(3, 0x30 << 1, (0x30 << 1) | 0x01);
+		}
+		else if (address == 0x31) {
+			HAL_GPIO_WritePin(ID2_GPIO_Port, ID2_Pin, GPIO_PIN_SET);
+			VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
+			VL6180x_ChangeAddress(address);
+			VL6180X_Init(0x31 << 1, (0x31 << 1) | 0x01);
+			VL6180X_SetScaling(3, 0x31 << 1, (0x31 << 1) | 0x01);
+		}
+		else if (address == 0x32) {
+			HAL_GPIO_WritePin(ID3_GPIO_Port, ID3_Pin, GPIO_PIN_SET);
+			VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
+			VL6180x_ChangeAddress(address);
+			VL6180X_Init(0x32 << 1, (0x32 << 1) | 0x01);
+			VL6180X_SetScaling(3, 0x32 << 1, (0x32 << 1) | 0x01);
+		}
+		else if (address == 0x33) {
+			HAL_GPIO_WritePin(ID4_GPIO_Port, ID4_Pin, GPIO_PIN_SET);
+			VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
+			VL6180x_ChangeAddress(address);
+			VL6180X_Init(0x33 << 1, (0x33 << 1) | 0x01);
+			VL6180X_SetScaling(3, 0x33 << 1, (0x33 << 1) | 0x01);
+		}
+		// else if (address == 0x34)
+		// {
+		//   HAL_GPIO_WritePin(ID5_GPIO_Port, ID5_Pin, GPIO_PIN_SET);
+		//   VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
+		//   VL6180x_ChangeAddress(address);
+		//   VL6180X_Init(0x34 << 1, (0x34 << 1) | 0x01);
+		//   VL6180X_SetScaling(3,0x34 << 1, (0x34 << 1) | 0x01);
+		//
+		// }
+		// else if (address == 0x35)
+		// {                 	 HAL_GPIO_WritePin(ID6_GPIO_Port, ID6_Pin, GPIO_PIN_SET);
+		//   VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
+		//   VL6180x_ChangeAddress(address);
+		//   VL6180X_Init(0x35 << 1, (0x35 << 1) | 0x01);
+		//   VL6180X_SetScaling(3,0x35 << 1, (0x35 << 1) | 0x01);
+		// }
 	}
 }
