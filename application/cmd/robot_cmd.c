@@ -57,13 +57,14 @@ static const TOF_Flag_e tof_edge_table[16] = {
 	[0x3] = DIR_BACK, // BL+BR
 	[0x4] = DIR_FRONT_RIGHT, // FR
 	[0x5] = DIR_RIGHT, // FR+BR
-	[0x7]=DIR_RIGHT_PLUS_BACK,
+	[0x7] = DIR_RIGHT_PLUS_BACK,
 	[0x8] = DIR_FRONT_LEFT, // FL
 	[0xA] = DIR_LEFT, // FL+BL
-	[0xB]=DIR_LEFT_PLUS_BACK,
+	[0xB] = DIR_LEFT_PLUS_BACK,
 	[0xC] = DIR_FRONT, // FL+FR
-	[0xD]=DIR_RIGHT_PLUS_FRONT,
-	[0xE]=DIR_LEFT_PLUS_FRONT
+	[0xD] = DIR_RIGHT_PLUS_FRONT,
+	[0xE] = DIR_LEFT_PLUS_FRONT,
+	[0xF]=DIR_ALL
 
 };
 static TOF_Flag_e tof_dir = DIR_NONE;
@@ -80,9 +81,9 @@ static float gray_history[8][3] = {0};
 static uint8_t gray_filter_idx = 0;
 float Temp_Yaw_turn = 0;
 bool Back_Flag = false;
-bool Front_Flag=false;
+bool Front_Flag = false;
 bool RIGHT_PLUS_FRONT_FLAG = false;
-static uint8_t Pfsm_VIsion_last_state=0xFF;
+static uint8_t Pfsm_VIsion_last_state = 0xFF;
 // 状态机
 Pfsm_t StartMode_Pfsm; // 最低优先级的启动模式|优先级P10
 Pfsm_t ScanPlatform_Pfsm; // 自动巡台模式倒数第二|优先级P9
@@ -148,13 +149,14 @@ static void YawAngleOFFSET(void) {
 /**
  * @brief 用于在自其他模式切换到AGV模式时刷新AGV状态
  */
-static  void AGV_State_RESET(void) {
+static void AGV_State_RESET(void) {
 	Temp_Yaw_turn = 0;
 	Back_Flag = false;
 	Front_Flag = false;
 	RIGHT_PLUS_FRONT_FLAG = false;
 	Pfsm_VIsion_last_state = 0xFF;
 }
+
 /**
  * @brief 控制输入为遥控器(调试时)的模式和控制量设置
  */
@@ -324,53 +326,53 @@ static void Chassis_Speed_CalculateOfGray(void) {
 	TOFStatusJudge();
 	switch (tof_dir) {
 		case DIR_BACK_RIGHT: //右后
-			AGV_GLOBAL_CMD.vx=AGV_APPROACH_SPEED;
-			Temp_Yaw_turn = IMU_data->Yaw;
-			Front_Flag=true;
+			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED;
+			if (!Front_Flag) Temp_Yaw_turn = IMU_data->Yaw;
+			Front_Flag = true;
 			Back_Flag = false;
 
 			break;
 		case DIR_BACK_LEFT: //左后
-			AGV_GLOBAL_CMD.vx=AGV_APPROACH_SPEED;
-			Temp_Yaw_turn = IMU_data->Yaw;
+			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED;
+			if (!Front_Flag) Temp_Yaw_turn = IMU_data->Yaw;
 			Front_Flag = true;
 			Back_Flag = false;
 
 			break;
 		case DIR_BACK: //后
-			AGV_GLOBAL_CMD.vx=AGV_APPROACH_SPEED;
-			Temp_Yaw_turn = IMU_data->Yaw;
-			Front_Flag=true;
+			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED;
+			if (!Front_Flag) Temp_Yaw_turn = IMU_data->Yaw;
+			Front_Flag = true;
 			Back_Flag = false;
 			break;
 		case DIR_FRONT_RIGHT: //右前
-			Temp_Yaw_turn = IMU_data->Yaw;
+			if (!Back_Flag) Temp_Yaw_turn = IMU_data->Yaw;
 			AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED;
 			Back_Flag = true;
 			Front_Flag = false;
 
 			break;
 		case DIR_RIGHT: //右
-			AGV_GLOBAL_CMD.target_yaw_angle=IMU_data->Yaw+90.f;
+			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw + 90.f;
 			Back_Flag = false;
 			Front_Flag = false;
 
 			break;
 		case DIR_FRONT_LEFT:
-			Temp_Yaw_turn = IMU_data->Yaw;
+			if (!Back_Flag) Temp_Yaw_turn = IMU_data->Yaw;
 			AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED;
 			Back_Flag = true;
 			Front_Flag = false;
 
 			break;
 		case DIR_LEFT: //左
-			AGV_GLOBAL_CMD.target_yaw_angle=IMU_data->Yaw+90.f;
+			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw + 90.f;
 			Back_Flag = false;
 			Front_Flag = false;
 
 			break;
 		case DIR_FRONT:
-			Temp_Yaw_turn = IMU_data->Yaw;
+			if (!Back_Flag) Temp_Yaw_turn = IMU_data->Yaw;
 			AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED;
 			Back_Flag = true;
 			Front_Flag = false;
@@ -378,69 +380,87 @@ static void Chassis_Speed_CalculateOfGray(void) {
 			break;
 		case DIR_RIGHT_PLUS_FRONT:
 			AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED;
-			AGV_GLOBAL_CMD.target_yaw_angle=IMU_data->Yaw-45.f;
-			Temp_Yaw_turn = IMU_data->Yaw-45.f;
-			RIGHT_PLUS_FRONT_FLAG=true;
+			if (!RIGHT_PLUS_FRONT_FLAG) Temp_Yaw_turn = IMU_data->Yaw;
+			RIGHT_PLUS_FRONT_FLAG = true;
+			Front_Flag = false;
+			Back_Flag = false;
 			break;
 		case DIR_LEFT_PLUS_FRONT:
-			Back_Flag = true;
+			Back_Flag = false;
 			Front_Flag = false;
 
 
 			break;
 		case DIR_LEFT_PLUS_BACK:
-			Front_Flag = true;
+			Front_Flag = false;
 			Back_Flag = false;
 
 			break;
 		case DIR_RIGHT_PLUS_BACK:
-			Front_Flag = true;
+			Front_Flag = false;
 			Back_Flag = false;
 			break;
+		case DIR_ALL:
+			Front_Flag = false;
+			Back_Flag = false;
+			RIGHT_PLUS_FRONT_FLAG = false;
+			break;
 		default:
-			if (Back_Flag==false&&Front_Flag==false&&RIGHT_PLUS_FRONT_FLAG==false)
-			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
-			else if (Back_Flag==true) {
-				AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED*speed_norm;
+			if (Back_Flag == false && Front_Flag == false && RIGHT_PLUS_FRONT_FLAG == false)
+				AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
+			else if (Back_Flag == true) {
+				AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED * speed_norm;
 			}
-			else if (Front_Flag==true) {
-				AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED*speed_norm;
+			else if (Front_Flag == true) {
+				AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
 			}
-			if (AGV_GLOBAL_CMD.vx < 0.05f&&AGV_GLOBAL_CMD.vx>0)
+			if (AGV_GLOBAL_CMD.vx < 0.05f && AGV_GLOBAL_CMD.vx > 0)
 				AGV_GLOBAL_CMD.vx = 0.05f;
-			else if (AGV_GLOBAL_CMD.vx >-0.05&&AGV_GLOBAL_CMD.vx<0)
+			else if (AGV_GLOBAL_CMD.vx > -0.05 && AGV_GLOBAL_CMD.vx < 0)
 				AGV_GLOBAL_CMD.vx = -0.05f;
 			break;
 	}
 	if (RIGHT_PLUS_FRONT_FLAG) {
+		AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn - 45.f;
+
 		if (max_gray < 0.19) {
 			tof_dir = DIR_NONE;
 			AGV_GLOBAL_CMD.vx = 0;
-			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 150.f;
+			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 100.f;
 			if (abs(IMU_data->Yaw - AGV_GLOBAL_CMD.target_yaw_angle) < 20.f)
 				RIGHT_PLUS_FRONT_FLAG = false;
 		}
 	}
-	if (Back_Flag&&RIGHT_PLUS_FRONT_FLAG==false) {
+	if (Back_Flag && RIGHT_PLUS_FRONT_FLAG == false) {
+		if (tof_dir == DIR_FRONT_RIGHT)
+			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn - 40.f;
+		if (tof_dir == DIR_FRONT_LEFT)
+			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 40.f;
 		if (max_gray < 0.19) {
 			tof_dir = DIR_NONE;
-			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 150.f;
-			AGV_GLOBAL_CMD.vx = 0;
+			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 70.f;
+			AGV_GLOBAL_CMD.vx = 0.f;
 			if (abs(IMU_data->Yaw - AGV_GLOBAL_CMD.target_yaw_angle) < 20.f)
 				Back_Flag = false;
 		}
 	}
-	if (Front_Flag&&RIGHT_PLUS_FRONT_FLAG==false) {
-		if (max_gray<0.19) {
-			tof_dir =DIR_NONE;
-			AGV_GLOBAL_CMD.target_yaw_angle=Temp_Yaw_turn +150.f;
-			AGV_GLOBAL_CMD.vx=0;
+	if (Front_Flag && RIGHT_PLUS_FRONT_FLAG == false) {
+		if (tof_dir == DIR_BACK_RIGHT)
+			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 40.f;
+		if (tof_dir == DIR_BACK_LEFT)
+			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn - 40.f;
+		if (max_gray < 0.19) {
+			tof_dir = DIR_NONE;
+			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 70.f;
+			AGV_GLOBAL_CMD.vx = 0.f;
 			if (abs(IMU_data->Yaw - AGV_GLOBAL_CMD.target_yaw_angle) < 20.f)
 				Front_Flag = false;
 		}
 	}
 
-	 if (vision_recv_data->cmd_state==TRACING&&tof_dir==DIR_NONE) PfsmSched_PostEvent(&Follow_Vision_Pfsm,PFSM_EVENT_FINISH_LOADPLATFORM);
+	if (vision_recv_data->cmd_state == TRACING && tof_dir == DIR_NONE)
+		PfsmSched_PostEvent(
+			&Follow_Vision_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
 	// /* 航向目标保持当前朝向 */
 }
 
@@ -455,7 +475,7 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 }
 
 void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
-		Chassis_Speed_CalculateOfGray();
+	Chassis_Speed_CalculateOfGray();
 }
 
 void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
@@ -463,23 +483,28 @@ void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	// static uint8_t last_state = 0xFF; // 0xFF 表示首次调用
 	uint8_t state = (uint8_t) vision_recv_data->cmd_state;
 	TOFStatusJudge();
-	if (tof_dir != DIR_NONE&&state!=TRACING) {
-		PfsmSched_Block(&Follow_Vision_Pfsm);
+
+	if (tof_dir != DIR_NONE && state != TRACING) {
+		AGV_GLOBAL_CMD.vx = 200.f;
+		if (tof_dir == DIR_FRONT && (Graysensor_Fetch_Data.sensor_Normalized[4] > 0.8 || Graysensor_Fetch_Data.
+		                             sensor_Normalized[5] > 0.8))
+			PfsmSched_Block(&Follow_Vision_Pfsm);
 	}
+	if (tof_dir != DIR_NONE) PfsmSched_Block(&Follow_Vision_Pfsm); // 如果TOF有障碍物,则阻塞视觉跟随状态机,等待避障完成
+
 	if (Pfsm_VIsion_last_state != state) {
 		if (Pfsm_VIsion_last_state == TRACING || Pfsm_VIsion_last_state == SEARCH_TRABLE) {
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw; // ← 锁当前航向
 		}
 		Pfsm_VIsion_last_state = state;
 	}
-	if (tof_dir!=DIR_NONE) PfsmSched_Block(&Follow_Vision_Pfsm); // 如果TOF有障碍物,则阻塞视觉跟随状态机,等待避障完成
 	switch ((uint8_t) vision_recv_data->cmd_state) {
 		case SEARCHING_TRAGET:
 			PfsmSched_Block(&Follow_Vision_Pfsm); // 阻塞视觉跟随状态机,等待视觉锁定目标
 			break;
 		case TRACING:
 			AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
-			AGV_GLOBAL_CMD.vx=AGV_APPROACH_SPEED*0.4;
+			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * 0.4;
 			break;
 		case SEARCH_TRABLE:
 			AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
@@ -490,7 +515,6 @@ void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 		default:
 			break;
 	}
-
 }
 
 void AttackAvoid_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
