@@ -77,6 +77,7 @@ static AGV_Control_Cmd_s AGV_GLOBAL_CMD = {
 	.SttartFlag = false,
 }; // AGV模式下才会启用的全局模式
 // AGV模式下的相关参数
+static AGV_State_e AGV_State = AGV_State_Stop;
 static float gray_history[8][3] = {0};
 static uint8_t gray_filter_idx = 0;
 float Temp_Yaw_turn = 0;
@@ -242,6 +243,14 @@ void RobotCMDTask() {
 }
 
 /**
+ * @brief 用于检测是否已经冲上台
+ * @return false 没有冲上去
+ * @return true  已经冲上去
+ */
+static bool UporDoenJudge(void) {
+	if ()
+}
+/**
  * @brief 判断相应位置的状态
  */
 void TOFStatusJudge(void) {
@@ -307,22 +316,6 @@ static void Chassis_Speed_CalculateOfGray(void) {
 	speed_norm = speed_norm * speed_norm * speed_norm; // 三次方
 	// AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
 
-
-	/* 最低速度保护，防止边缘完全卡死 */
-
-
-	/* ====== Step 5: 转向辅助 — 哪边黑就往反方向转 ====== */
-
-	static const float turn_weight[8] = {
-		-0.5f, /* I0 左 */
-		-1.0f, /* I1 左 */
-		-1.5f, /* I2 左 */
-		-2.0f, /* I3 左 */
-		2.0f, /* I4 右 */
-		1.5f, /* I5 右 */
-		1.0f, /* I6 右 */
-		0.5f /* I7 右 */
-	};
 	TOFStatusJudge();
 	switch (tof_dir) {
 		case DIR_BACK_RIGHT: //右后
@@ -468,26 +461,12 @@ static void LoadPlatform(void) {
 	if (TOF050C_Fetch_Data.range_values[4] < 40) {
 	}
 }
-
-void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
-	PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
-	PfsmSched_Block(&StartMode_Pfsm); // 阻塞启动模式状态机
-}
-
-void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
-	Chassis_Speed_CalculateOfGray();
-}
-
-void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
-	// 视觉跟随模式处理函数
-	// static uint8_t last_state = 0xFF; // 0xFF 表示首次调用
-	uint8_t state = (uint8_t) vision_recv_data->cmd_state;
+static void VisionBlockJudge(const uint8_t state) {
 	TOFStatusJudge();
-
 	if (tof_dir != DIR_NONE && state != TRACING) {
 		AGV_GLOBAL_CMD.vx = 200.f;
 		if (tof_dir == DIR_FRONT && (Graysensor_Fetch_Data.sensor_Normalized[4] > 0.8 || Graysensor_Fetch_Data.
-		                             sensor_Normalized[5] > 0.8))
+					     sensor_Normalized[5] > 0.8))
 			PfsmSched_Block(&Follow_Vision_Pfsm);
 	}
 	if (tof_dir != DIR_NONE) PfsmSched_Block(&Follow_Vision_Pfsm); // 如果TOF有障碍物,则阻塞视觉跟随状态机,等待避障完成
@@ -498,6 +477,45 @@ void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 		}
 		Pfsm_VIsion_last_state = state;
 	}
+
+}
+void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+	uint16_t StartJudge = TOF050C_Fetch_Data.range_values[4];
+	if (StartJudge <StartFlagDistance)  AGV_State = AGV_State_Running_Auto_Down;
+	else if () {
+		AGV_State = AGV_State_Running_Auto_Up;
+	}
+	switch (AGV_State) {
+		case AGV_State_Stop:
+			AGV_GLOBAL_CMD.vx=0;
+			AGV_GLOBAL_CMD.wz=0;
+			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
+			break;
+		case AGV_State_Running_Auto_Down:
+			AGV_GLOBAL_CMD.vx =
+			AGV_GLOBAL_CMD.wz = 0;
+			break;
+		case AGV_State_Running_Auto_Up:
+
+			PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+			PfsmSched_Block(&StartMode_Pfsm); // 阻塞启动模式状态机
+			break;
+		default:
+			return;
+			break;
+	}
+
+}
+
+void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+	Chassis_Speed_CalculateOfGray();
+}
+
+void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+	// 视觉跟随模式处理函数
+	// static uint8_t last_state = 0xFF; // 0xFF 表示首次调用
+	uint8_t state = (uint8_t) vision_recv_data->cmd_state;
+	VisionBlockJudge(state);
 	switch ((uint8_t) vision_recv_data->cmd_state) {
 		case SEARCHING_TRAGET:
 			PfsmSched_Block(&Follow_Vision_Pfsm); // 阻塞视觉跟随状态机,等待视觉锁定目标

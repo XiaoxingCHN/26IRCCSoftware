@@ -24,7 +24,7 @@
 #define VISION_USE_VCP  // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
 
-#define AGV_APPROACH_SPEED 5*660.f
+#define AGV_APPROACH_SPEED 5*660.f//巡台制动速度
 
 #define AGV_LASER_DISTANCE_FL 200// 前左
 #define AGV_LASER_DISTANCE_FR 200 // 前右
@@ -43,13 +43,15 @@
 #define REDUCTION_RATIO_LOADER 49.0f // 拨盘电机的减速比,英雄需要修改为3508的19.0f
 #define NUM_PER_CIRCLE 10            // 拨盘一圈的装载量
 // 机器人底盘修改的参数,单位为mm(毫米)
-#define WHEEL_BASE 141              // 纵向轴距(前进后退方向)
-#define TRACK_WIDTH 223.2f            // 横向轮距(左右平移方向)
+#define WHEEL_BASE 210.2f              // 纵向轴距(前进后退方向)
+#define TRACK_WIDTH 132.f          // 横向轮距(左右平移方向)
 #define CENTER_GIMBAL_OFFSET_X 0    // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 #define CENTER_GIMBAL_OFFSET_Y 0    // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
-#define RADIUS_WHEEL 60             // 轮子半径
+#define RADIUS_WHEEL 72             // 轮子半径
 #define REDUCTION_RATIO_WHEEL 1.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
 #define TOF050C_EDGE 300.f
+#define StartFlagDistance 25.f //适用于侧边TOF测距启动的距离参数
+#define ApprochSpeed 200.f
 
 #define GYRO2GIMBAL_DIR_YAW 1   // 陀螺仪数据相较于云台的yaw的方向,1为相同,-1为相反
 #define GYRO2GIMBAL_DIR_PITCH 1 // 陀螺仪数据相较于云台的pitch的方向,1为相同,-1为相反
@@ -118,6 +120,12 @@ typedef enum {
 	CONTROL_AGV,
 } Robot_Control_Mode_e;
 
+typedef enum {
+	AGV_State_Stop = 0,
+	AGV_State_Running_Auto_Up,//下位机自控
+	AGV_State_Running_Auto_Down,
+	AGV_State_Running_Vision,//上位机自控
+}AGV_State_e;
 // 云台模式设置
 typedef enum {
 	GIMBAL_ZERO_FORCE = 0, // 电流零输入

@@ -45,8 +45,9 @@ typedef struct
 	float tracing_id;
         float cmd_state;
         float car_speed;
-        // float NeedValue1;
-        // float NeedValue2;
+        float block_distance;//目标方块距离
+	float block_height;//目标方块高度
+
 } Vision_Recv_s;
 
 typedef enum {

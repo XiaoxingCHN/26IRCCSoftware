@@ -59,7 +59,7 @@ void TOF050CInit() {
 	multisensor_vl6180x();
 
 	// 初始化VL53L0多传感器
-	// multisensor_vl53l0_Init();
+	multisensor_vl53l0_Init();
 
 	// 注册消息发布订阅
 	TOF050C_Sub = SubRegister("TOF050C_Cmd", sizeof(TOF050C_Ctrl_Cmd_s));
@@ -85,8 +85,8 @@ void TOF050CTask() {
 	// TOF050C_Feedback_Data.range_values[4] = VL6180X_ReadRangeSingleMillimeters(0x68, 0x69); // 地址 0x34
 	// TOF050C_Feedback_Data.range_values[5] = VL6180X_ReadRangeSingleMillimeters(0x6A, 0x6B); // 地址 0x35
 	// TOF200C (VL53L0) 传感器 4-7
-	// TOF050C_Feedback_Data.range_values[4] = VL53L0X_readRangeSingleMillimeters(0x34); // 地址 0x34
-	// TOF050C_Feedback_Data.range_values[5] = VL53L0X_readRangeSingleMillimeters(0x35); // 地址 0x35
+	TOF050C_Feedback_Data.range_values[4] = VL53L0X_readRangeSingleMillimeters(0x34); // 地址 0x34
+	TOF050C_Feedback_Data.range_values[5] = VL53L0X_readRangeSingleMillimeters(0x35); // 地址 0x35
 	// TOF050C_Feedback_Data.range_values[6] = VL53L0X_readRangeSingleMillimeters(0x36); // 地址 0x36
 	// TOF050C_Feedback_Data.range_values[7] = VL53L0X_readRangeSingleMillimeters(0x37); // 地址 0x37
 
