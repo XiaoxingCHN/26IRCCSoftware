@@ -18,7 +18,7 @@
 #include "bsp_log.h"
 #include "graysensor.h"
 #include "TOF_Sensors.h"
-
+#include "bsp_adc.h"
 osThreadId insTaskHandle;
 osThreadId robotTaskHandle;
 osThreadId motorTaskHandle;
@@ -144,10 +144,11 @@ __attribute__((noreturn)) void StartUITASK(void const *argument)
 {
     LOGINFO("[freeRTOS] UI Task Start");
     // MyUIInit();
+
   // GraysensorInit(); // 初始化灰度传感器
-
+	ADC_VBAT_INIT(); // 初始化电压检测
     TOF050CInit();
-
+	static  float VBAT_Monitor;
     LOGINFO("[freeRTOS] UI Init Done, communication with ref has established");
     for (;;)
     {
@@ -156,6 +157,7 @@ __attribute__((noreturn)) void StartUITASK(void const *argument)
       TOF050CTask();
         // 每给裁判系统发送一包数据会挂起一次,详见UITask函数的refereeSend()
         // UITask();
+    	VBAT_Monitor = VBATVAL_GET();
         osDelay(1); // 即使没有任何UI需要刷新,也挂起一次,防止卡在UITask中无法切换
     }
 }

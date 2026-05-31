@@ -38,7 +38,6 @@
         * Output
         * EVENT_OUT
         * EXTI
-     PC4   ------> ADCx_INP4
      PA8   ------> RCC_MCO_1
 */
 void MX_GPIO_Init(void)
@@ -93,12 +92,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(ID6_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PC4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PEPin PEPin */
   GPIO_InitStruct.Pin = ACC_INT_Pin|GYRO_INT_Pin;

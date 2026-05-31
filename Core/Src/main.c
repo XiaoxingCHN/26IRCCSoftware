@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "adc.h"
 #include "dma.h"
 #include "fdcan.h"
 #include "i2c.h"
@@ -120,6 +121,7 @@ int main(void)
   MX_UART8_Init();
   MX_UART9_Init();
   MX_I2C2_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   RobotInit(); // Ψһ�ĳ�ʼ������
   LOGINFO("[main] SystemInit() and RobotInit() done");

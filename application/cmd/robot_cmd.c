@@ -248,7 +248,7 @@ void RobotCMDTask() {
  * @return true  已经冲上去
  */
 static bool UporDoenJudge(void) {
-	if ()
+	// if ()
 }
 /**
  * @brief 判断相应位置的状态
@@ -481,10 +481,14 @@ static void VisionBlockJudge(const uint8_t state) {
 }
 void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	uint16_t StartJudge = TOF050C_Fetch_Data.range_values[4];
-	if (StartJudge <StartFlagDistance)  AGV_State = AGV_State_Running_Auto_Down;
-	else if () {
-		AGV_State = AGV_State_Running_Auto_Up;
+	// if (StartJudge <StartFlagDistance)  AGV_State = AGV_State_Running_Auto_Down;
+	// else if () {
+	// 	AGV_State = AGV_State_Running_Auto_Up;
+	// }
+	if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
+		AGV_State = AGV_State_Running_Auto_Down;
 	}
+
 	switch (AGV_State) {
 		case AGV_State_Stop:
 			AGV_GLOBAL_CMD.vx=0;
@@ -492,7 +496,7 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
 			break;
 		case AGV_State_Running_Auto_Down:
-			AGV_GLOBAL_CMD.vx =
+			AGV_GLOBAL_CMD.vx =-AGV_APPROACH_SPEED;
 			AGV_GLOBAL_CMD.wz = 0;
 			break;
 		case AGV_State_Running_Auto_Up:
