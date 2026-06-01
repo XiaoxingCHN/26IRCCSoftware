@@ -259,14 +259,22 @@ void VL6180X_Clear_Interrupt(uint8_t addr_write, uint8_t addr_read) {
 
 void VL6180X_ReadRangeMultiple(const TOF_050C_WRREG regs[],
                                uint16_t results[], uint8_t count) {
-	for (uint8_t i = 0; i < count; i++)
+	for (uint8_t i = 0; i < count; i++) {
 		VL6180X_Start_Range(regs[i].addr_w, regs[i].addr_r);
-
-	for (uint8_t i = 0; i < count; i++)
+		// osDelay(1);
+		DWT_Delay(0.001);
+	}
+	for (uint8_t i = 0; i < count; i++) {
 		VL6180X_Poll_Range(regs[i].addr_w, regs[i].addr_r);
-	osDelay(20);
-	for (uint8_t i = 0; i < count; i++)
+		// osDelay(5);
+		DWT_Delay(0.001);
+	}
+	DWT_Delay(0.030);
+
+	for (uint8_t i = 0; i < count; i++) {
 		results[i] = (uint16_t) scaling * VL6180_Read_Range(regs[i].addr_w, regs[i].addr_r);
+		// osDelay(1);
+	}
 }
 
 uint16_t VL6180X_ReadRangeSingleMillimeters(uint8_t addr_write, uint8_t addr_read) {
@@ -274,7 +282,7 @@ uint16_t VL6180X_ReadRangeSingleMillimeters(uint8_t addr_write, uint8_t addr_rea
 	VL6180X_Start_Range(addr_write, addr_read);
 	/* Wait for measurement ready. */
 	VL6180X_Poll_Range(addr_write, addr_read);
-	osDelay(20);
+	DWT_Delay(0.020);
 	return (uint16_t) scaling * VL6180_Read_Range(addr_write, addr_read);
 }
 

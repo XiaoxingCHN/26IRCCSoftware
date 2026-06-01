@@ -59,7 +59,7 @@ void TOF050CInit() {
 	multisensor_vl6180x();
 
 	// 初始化VL53L0多传感器
-	multisensor_vl53l0_Init();
+	// multisensor_vl53l0_Init();
 
 	// 注册消息发布订阅
 	TOF050C_Sub = SubRegister("TOF050C_Cmd", sizeof(TOF050C_Ctrl_Cmd_s));
@@ -76,31 +76,31 @@ void TOF050CTask() {
 
 	// 读取8个传感器的测距数据，前4 TOF050C，后4 TOF200C
 	// TOF050C (VL6180X) 传感器 0-3
-	VL6180X_ReadRangeMultiple(vl6180x_sensors, TOF050C_Feedback_Data.range_values, 4);
-	// TOF050C_Feedback_Data.range_values[0] = VL6180X_ReadRangeSingleMillimeters(0x60, 0x61); // 地址 0x30
-	//    TOF050C_Feedback_Data.range_values[1] = VL6180X_ReadRangeSingleMillimeters(0x62, 0x63); // 地址 0x31
-	//    TOF050C_Feedback_Data.range_values[2] = VL6180X_ReadRangeSingleMillimeters(0x64, 0x65); // 地址 0x32
-	//    TOF050C_Feedback_Data.range_values[3] = VL6180X_ReadRangeSingleMillimeters(0x66, 0x67); // 地址 0x33
+	// VL6180X_ReadRangeMultiple(vl6180x_sensors, TOF050C_Feedback_Data.range_values, 4);
+	TOF050C_Feedback_Data.range_values[0] = VL6180X_ReadRangeSingleMillimeters(0x60, 0x61); // 地址 0x30
+	TOF050C_Feedback_Data.range_values[1] = VL6180X_ReadRangeSingleMillimeters(0x62, 0x63); // 地址 0x31
+	TOF050C_Feedback_Data.range_values[2] = VL6180X_ReadRangeSingleMillimeters(0x64, 0x65); // 地址 0x32
+	TOF050C_Feedback_Data.range_values[3] = VL6180X_ReadRangeSingleMillimeters(0x66, 0x67); // 地址 0x33
 	//两侧从TOF200C改为TOF050C
 	// TOF050C_Feedback_Data.range_values[4] = VL6180X_ReadRangeSingleMillimeters(0x68, 0x69); // 地址 0x34
 	// TOF050C_Feedback_Data.range_values[5] = VL6180X_ReadRangeSingleMillimeters(0x6A, 0x6B); // 地址 0x35
-	// TOF200C (VL53L0) 传感器 4-7
-	TOF050C_Feedback_Data.range_values[4] = VL53L0X_readRangeSingleMillimeters(0x34); // 地址 0x34
-	TOF050C_Feedback_Data.range_values[5] = VL53L0X_readRangeSingleMillimeters(0x35); // 地址 0x35
+	// // TOF200C (VL53L0) 传感器 4-7
+	// TOF050C_Feedback_Data.range_values[4] = VL53L0X_readRangeSingleMillimeters(0x34); // 地址 0x34
+	// TOF050C_Feedback_Data.range_values[5] = VL53L0X_readRangeSingleMillimeters(0x35); // 地址 0x35
 	// TOF050C_Feedback_Data.range_values[6] = VL53L0X_readRangeSingleMillimeters(0x36); // 地址 0x36
 	// TOF050C_Feedback_Data.range_values[7] = VL53L0X_readRangeSingleMillimeters(0x37); // 地址 0x37
 
-	char tx_buf[128];
-	int len = sprintf(tx_buf, "%d,%d,%d,%d,%d,%d\r\n",
-	                  TOF050C_Feedback_Data.range_values[0],
-	                  TOF050C_Feedback_Data.range_values[1],
-	                  TOF050C_Feedback_Data.range_values[2],
-	                  TOF050C_Feedback_Data.range_values[3],
-	                  TOF050C_Feedback_Data.range_values[4],
-	                  TOF050C_Feedback_Data.range_values[5]
-	);
+	// char tx_buf[128];
+	// int len = sprintf(tx_buf, "%d,%d,%d,%d,%d,%d\r\n",
+	//                   TOF050C_Feedback_Data.range_values[0],
+	//                   TOF050C_Feedback_Data.range_values[1],
+	//                   TOF050C_Feedback_Data.range_values[2],
+	//                   TOF050C_Feedback_Data.range_values[3],
+	//                   TOF050C_Feedback_Data.range_values[4],
+	//                   TOF050C_Feedback_Data.range_values[5]
+	// );
 
-	HAL_UART_Transmit(&huart8, (uint8_t *) tx_buf, len, 100);
+	// HAL_UART_Transmit(&huart8, (uint8_t *) tx_buf, len, 100);
 
 	// 设置数据有效性和在线状态
 	TOF050C_Feedback_Data.data_valid = 1; // 假设数据总是有效

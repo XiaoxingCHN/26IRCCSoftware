@@ -11,3 +11,5 @@ float VBATVAL_GET() {
 	vbus = ((float) adc_val * 3.3f / 65535) * 11.0f;
 	return vbus;
 }
+
+

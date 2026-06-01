@@ -1,6 +1,7 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 #include "bsp_pwm.h"
+
 #define BUZZER_DEVICE_CNT 5
 
 #define  DoFreq  523
