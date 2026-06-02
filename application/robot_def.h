@@ -125,6 +125,7 @@ typedef enum {
 	AGV_State_Running_Auto_Up,//下位机自控
 	AGV_State_Running_Auto_Down,
 	AGV_State_Running_Vision,//上位机自控
+	AGV_State_Running_Auto_ReDown,
 }AGV_State_e;
 // 云台模式设置
 typedef enum {

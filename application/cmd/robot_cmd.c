@@ -168,9 +168,21 @@ static float GraySensor_GetMaxFiltered(void) {
 		float b = gray_history[ch][1];
 		float c = gray_history[ch][2];
 		/* 中值 */
-		if (a > b) { float t = a; a = b; b = t; }
-		if (b > c) { float t = b; b = c; c = t; }
-		if (a > b) { float t = a; a = b; b = t; }
+		if (a > b) {
+			float t = a;
+			a = b;
+			b = t;
+		}
+		if (b > c) {
+			float t = b;
+			b = c;
+			c = t;
+		}
+		if (a > b) {
+			float t = a;
+			a = b;
+			b = t;
+		}
 		if (b > max_gray) max_gray = b;
 	}
 	return max_gray;
@@ -304,7 +316,7 @@ void TOFStatusJudge(void) {
  */
 
 static void Chassis_Speed_CalculateOfGray(void) {
-	float max_gray=GraySensor_GetMaxFiltered();
+	float max_gray = GraySensor_GetMaxFiltered();
 	/*  max_gray=0(全白) → speed_norm=1 → 全速
 	 *  max_gray=0.3     → speed_norm≈0.34 → 明显减速
 	 *  max_gray=0.5     → speed_norm≈0.13 → 很慢
@@ -479,7 +491,9 @@ static void VisionBlockJudge(const uint8_t state) {
 
 static float speedstarttick = 0;
 static float speedtick = 0;
-float GrayJudge=0;
+float GrayJudge = 0;
+static float  ReDownStart = 0;
+static float  ReDown = 0;
 void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	uint16_t StartJudge = TOF050C_Fetch_Data.range_values[4];
 	// if (StartJudge <StartFlagDistance)  AGV_State = AGV_State_Running_Auto_Down;
@@ -488,10 +502,8 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	// }
 	TOFStatusJudge();
 	static float Yaw_offset;
-	if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
-		AGV_State = AGV_State_Running_Auto_Down;
-	}
-	else if (switch_is_down(rc_data[TEMP].rc.switch_right)) {
+
+	if (switch_is_down(rc_data[TEMP].rc.switch_right)) {
 		AGV_State = AGV_State_Stop;
 	}
 
@@ -501,40 +513,57 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 			AGV_GLOBAL_CMD.wz = 0;
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
 			Yaw_offset = IMU_data->Yaw;
-			speedstarttick=0;
-
+			speedstarttick = HeartbeatTick;
+			if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
+				AGV_State = AGV_State_Running_Auto_Down;
+			}
 
 			break;
 		case AGV_State_Running_Auto_Down:
 			speedtick = HeartbeatTick - speedstarttick;
-			if (speedstarttick == 0) {
-				speedstarttick = HeartbeatTick;
-			}
-			GrayJudge=GraySensor_GetMaxFiltered();
-			if (GrayJudge<0.4f||tof_dir==DIR_NONE) {
-				AGV_GLOBAL_CMD.vx=0;
-				AGV_State=AGV_State_Running_Auto_Up;
+
+			GrayJudge = GraySensor_GetMaxFiltered();
+			if (GrayJudge < 0.4f && tof_dir == DIR_NONE) {
+				AGV_GLOBAL_CMD.vx = 0;
+				AGV_State = AGV_State_Running_Auto_Up;
 				break;
 			}
-			if (speedtick>2300.f) {
+			if (GrayJudge < 0.6f && tof_dir == DIR_LEFT) {
 				AGV_GLOBAL_CMD.vx = 0;
-				AGV_State=AGV_State_Stop;
+				AGV_GLOBAL_CMD.target_yaw_angle = Yaw_offset + 45.f;
+			}
+			if (speedtick > 1300.f) {
+				AGV_GLOBAL_CMD.vx = 0;
+				AGV_State = AGV_State_Running_Auto_ReDown;
+				ReDownStart = HeartbeatTick;
 				break;
 			}
 
 			AGV_GLOBAL_CMD.vx = -ApprochSpeed;
 			AGV_GLOBAL_CMD.wz = 0;
 			AGV_GLOBAL_CMD.target_yaw_angle = Yaw_offset;
-			// if (tof_dir==DIR_ALL) {
-			// 	// AGV_State = AGV_State_Running_Auto_Up;
-			// 	AGV_GLOBAL_CMD.vx=0;
-			// }
+
 			break;
 		case AGV_State_Running_Auto_Up:
 
 			PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
 			// AGV_State = AGV_State_Stop;
-			// PfsmSched_Block(&StartMode_Pfsm); // 阻塞启动模式状态机
+			PfsmSched_Block(&StartMode_Pfsm); // 阻塞启动模式状态机
+			break;
+		case AGV_State_Running_Auto_ReDown:
+			AGV_GLOBAL_CMD.vx = 0.2 * ApprochSpeed;
+			AGV_GLOBAL_CMD.target_yaw_angle = Yaw_offset;
+			ReDown = HeartbeatTick - ReDownStart;
+			if (ReDown>1500.f) {
+				AGV_GLOBAL_CMD.vx = 0;
+				AGV_State = AGV_State_Running_Auto_Down;
+				break;
+			}
+			if (tof_dir == DIR_FRONT) {
+				AGV_GLOBAL_CMD.vx = 0;
+				AGV_State = AGV_State_Running_Auto_Down;
+				break;
+			}
 			break;
 		default:
 			break;
@@ -542,6 +571,7 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 }
 
 void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+
 	Chassis_Speed_CalculateOfGray();
 }
 
@@ -575,4 +605,5 @@ void AttackAvoid_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 
 void ReloadPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	// 掉台后自动登台模式处理函数
+
 }

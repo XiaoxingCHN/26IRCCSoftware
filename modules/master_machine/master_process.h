@@ -45,8 +45,8 @@ typedef struct
 	float tracing_id;
         float cmd_state;
         float car_speed;
-        float block_distance;//目标方块距离
-	float block_height;//目标方块高度
+	float Distance_Front;
+	float Distance_Back;
 
 } Vision_Recv_s;
 
@@ -88,7 +88,7 @@ typedef struct
 	Bullet_Speed_e bullet_speed;
 
 	float yaw;
-        float mcu_feed_state;//单片机返回在台上还是台下
+        float mcu_feed_state;//单片机返回在台上还是台下0台下、1台上
         float laser_ranging_L0;
         float laser_ranging_L1;
         float laser_ranging_R0;

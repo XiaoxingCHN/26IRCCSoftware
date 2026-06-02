@@ -34,7 +34,9 @@ void VisionSetLaserRanging(float laser_ranging_L0, float laser_ranging_L1, float
     send_data.laser_ranging_R0 = laser_ranging_R0;
     send_data.laser_ranging_R1 = laser_ranging_R1;
 }
-
+void VIsionSetAGVMode(int8_t agv_mode) {
+	send_data.mcu_feed_state= (float)agv_mode;
+}
 void VisionSetState(float Robot_Position) {
 	send_data.mcu_feed_state = Robot_Position;
 }
