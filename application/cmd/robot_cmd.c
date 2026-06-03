@@ -317,6 +317,9 @@ void TOFStatusJudge(void) {
 
 static void Chassis_Speed_CalculateOfGray(void) {
 	float max_gray = GraySensor_GetMaxFiltered();
+	if (max_gray > 1.0) {
+		PfsmSched_PostEvent(&ReloadPlatform_Pfsm, PFSM_EVENT_FALLDOWN_PLATFORM);
+	}
 	/*  max_gray=0(全白) → speed_norm=1 → 全速
 	 *  max_gray=0.3     → speed_norm≈0.34 → 明显减速
 	 *  max_gray=0.5     → speed_norm≈0.13 → 很慢
@@ -332,14 +335,12 @@ static void Chassis_Speed_CalculateOfGray(void) {
 			if (!Front_Flag) Temp_Yaw_turn = IMU_data->Yaw;
 			Front_Flag = true;
 			Back_Flag = false;
-
 			break;
 		case DIR_BACK_LEFT: //左后
 			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED;
 			if (!Front_Flag) Temp_Yaw_turn = IMU_data->Yaw;
 			Front_Flag = true;
 			Back_Flag = false;
-
 			break;
 		case DIR_BACK: //后
 			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED;
@@ -352,33 +353,28 @@ static void Chassis_Speed_CalculateOfGray(void) {
 			AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED;
 			Back_Flag = true;
 			Front_Flag = false;
-
 			break;
 		case DIR_RIGHT: //右
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw + 90.f;
 			Back_Flag = false;
 			Front_Flag = false;
-
 			break;
 		case DIR_FRONT_LEFT:
 			if (!Back_Flag) Temp_Yaw_turn = IMU_data->Yaw;
 			AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED;
 			Back_Flag = true;
 			Front_Flag = false;
-
 			break;
 		case DIR_LEFT: //左
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw + 90.f;
 			Back_Flag = false;
 			Front_Flag = false;
-
 			break;
 		case DIR_FRONT:
 			if (!Back_Flag) Temp_Yaw_turn = IMU_data->Yaw;
 			AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED;
 			Back_Flag = true;
 			Front_Flag = false;
-
 			break;
 		case DIR_RIGHT_PLUS_FRONT:
 			AGV_GLOBAL_CMD.vx = -AGV_APPROACH_SPEED;
@@ -390,8 +386,6 @@ static void Chassis_Speed_CalculateOfGray(void) {
 		case DIR_LEFT_PLUS_FRONT:
 			Back_Flag = false;
 			Front_Flag = false;
-
-
 			break;
 		case DIR_LEFT_PLUS_BACK:
 			Front_Flag = false;
@@ -460,9 +454,7 @@ static void Chassis_Speed_CalculateOfGray(void) {
 		}
 	}
 
-	if (vision_recv_data->cmd_state == TRACING && tof_dir == DIR_NONE)
-		PfsmSched_PostEvent(
-			&Follow_Vision_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+
 	// /* 航向目标保持当前朝向 */
 }
 
@@ -492,14 +484,12 @@ static void VisionBlockJudge(const uint8_t state) {
 static float speedstarttick = 0;
 static float speedtick = 0;
 float GrayJudge = 0;
-static float  ReDownStart = 0;
-static float  ReDown = 0;
-void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+static float ReDownStart = 0;
+static float ReDown = 0;
+
+void StartModeRun() {
 	uint16_t StartJudge = TOF050C_Fetch_Data.range_values[4];
-	// if (StartJudge <StartFlagDistance)  AGV_State = AGV_State_Running_Auto_Down;
-	// else if () {
-	// 	AGV_State = AGV_State_Running_Auto_Up;
-	// }
+	GrayJudge = GraySensor_GetMaxFiltered();
 	TOFStatusJudge();
 	static float Yaw_offset;
 
@@ -514,16 +504,17 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
 			Yaw_offset = IMU_data->Yaw;
 			speedstarttick = HeartbeatTick;
+			// if (StartJudge<80&&StartJudge > 10) {
+			// 	AGV_State = AGV_State_Running_Auto_Down;
+			// }
+			Printf_UART("AGV_State_Stop");
 			if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
 				AGV_State = AGV_State_Running_Auto_Down;
 			}
-
 			break;
 		case AGV_State_Running_Auto_Down:
 			speedtick = HeartbeatTick - speedstarttick;
-
-			GrayJudge = GraySensor_GetMaxFiltered();
-			if (GrayJudge < 0.4f && tof_dir == DIR_NONE) {
+			if (GrayJudge < 0.6f) {
 				AGV_GLOBAL_CMD.vx = 0;
 				AGV_State = AGV_State_Running_Auto_Up;
 				break;
@@ -536,10 +527,16 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 				AGV_GLOBAL_CMD.vx = 0;
 				AGV_State = AGV_State_Running_Auto_ReDown;
 				ReDownStart = HeartbeatTick;
+				speedstarttick= HeartbeatTick;
+				Printf_UART("Reset1");
 				break;
 			}
-
-			AGV_GLOBAL_CMD.vx = -ApprochSpeed;
+			if (vision_recv_data->Distance_Back<0.25||TOF050C_Fetch_Data.range_values[0]<165.f||TOF050C_Fetch_Data.range_values[3]<165.f)
+				AGV_GLOBAL_CMD.vx=-0.7*ApprochSpeed;
+			else {
+				AGV_GLOBAL_CMD.vx = -ApprochSpeed;
+				Printf_UART("Victory!!!");
+			}
 			AGV_GLOBAL_CMD.wz = 0;
 			AGV_GLOBAL_CMD.target_yaw_angle = Yaw_offset;
 
@@ -551,17 +548,20 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 			PfsmSched_Block(&StartMode_Pfsm); // 阻塞启动模式状态机
 			break;
 		case AGV_State_Running_Auto_ReDown:
-			AGV_GLOBAL_CMD.vx = 0.2 * ApprochSpeed;
+			AGV_GLOBAL_CMD.vx = 0.1 * ApprochSpeed;
 			AGV_GLOBAL_CMD.target_yaw_angle = Yaw_offset;
 			ReDown = HeartbeatTick - ReDownStart;
-			if (ReDown>1500.f) {
+
+			// if (ReDown>500.f) {
+			// 	AGV_GLOBAL_CMD.vx = 0;
+			// 	AGV_State = AGV_State_Running_Auto_Down;
+			// 	Printf_UART("ReDown Stop1\r\n");
+			// 	break;
+			// }
+			if (vision_recv_data->Distance_Front < 0.17 && GrayJudge > 1.f) {
 				AGV_GLOBAL_CMD.vx = 0;
 				AGV_State = AGV_State_Running_Auto_Down;
-				break;
-			}
-			if (tof_dir == DIR_FRONT) {
-				AGV_GLOBAL_CMD.vx = 0;
-				AGV_State = AGV_State_Running_Auto_Down;
+				Printf_UART("ReDown Stop2\r\n");
 				break;
 			}
 			break;
@@ -570,28 +570,50 @@ void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	}
 }
 
-void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+	// Printf_UART("StartMode_PfsmHandler\r\n");
+	// if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
+	// 	PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+	// 	// PfsmSched_PostEvent(&Follow_Vision_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+	//
+	// 	PfsmSched_Block(&StartMode_Pfsm);
+	// }
+	StartModeRun();
+}
 
+void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+	Printf_UART("ScanPlatform_PfsmHandler\r\n");
+	if (vision_recv_data->cmd_state != SEARCH_TRABLE)
+		PfsmSched_PostEvent(&Follow_Vision_Pfsm, PFSM_EVENT_FINDOUT_AIM);
 	Chassis_Speed_CalculateOfGray();
 }
 
 void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
+	Printf_UART("Follow_Vision_PfsmHandler\r\n");
 	// 视觉跟随模式处理函数
 	// static uint8_t last_state = 0xFF; // 0xFF 表示首次调用
+	float max_gray = GraySensor_GetMaxFiltered();
+	// if (max_gray>1.0) {
+	// 	PfsmSched_PostEvent(&ReloadPlatform_Pfsm,PFSM_EVENT_FALLDOWN_PLATFORM );
+	// }
 	uint8_t state = (uint8_t) vision_recv_data->cmd_state;
 	VisionBlockJudge(state);
 	switch ((uint8_t) vision_recv_data->cmd_state) {
 		case SEARCHING_TRAGET:
-			PfsmSched_Block(&Follow_Vision_Pfsm); // 阻塞视觉跟随状态机,等待视觉锁定目标
+			Printf_UART("SEARCHING_TRAGET\r\n");
+			AGV_GLOBAL_CMD.vx = 0;
+			// PfsmSched_Block(&Follow_Vision_Pfsm); // 阻塞视觉跟随状态机,等待视觉锁定目标
 			break;
 		case TRACING:
+			Printf_UART("TRACING\r\n");
 			AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
-			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * 0.4;
+			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * 0.2;
+			// AGV_GLOBAL_CMD.vx = 0;
 			break;
-		case SEARCH_TRABLE:
-			AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
-			AGV_GLOBAL_CMD.vx = vision_recv_data->car_speed;
-			break;
+		// case SEARCH_TRABLE:
+		// 	AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
+		// 	AGV_GLOBAL_CMD.vx = vision_recv_data->car_speed;
+		// 	break;
 		case READY_TO_PUSH:
 			break;
 		default:
@@ -605,5 +627,6 @@ void AttackAvoid_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 
 void ReloadPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	// 掉台后自动登台模式处理函数
-
+	Printf_UART("ReloadPlatform\r\n");
+	AGV_GLOBAL_CMD.vx = 0;
 }

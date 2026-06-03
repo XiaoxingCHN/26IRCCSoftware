@@ -124,7 +124,7 @@ uint8_t VL6180X_ReadByte(uint16_t reg, uint8_t addr_write, uint8_t addr_read) {
 uint8_t VL6180X_Init(uint8_t addr_write, uint8_t addr_read) {
 	ptp_offset = 0;
 	scaling = 0;
-	io_timeout1 = 2; // 重试次数（非毫秒！BSP I2C 已提供 100ms 硬件超时）
+	io_timeout1 = 3; // 重试次数（非毫秒！BSP I2C 已提供 100ms 硬件超时）
 
 	ptp_offset = VL6180X_ReadByte(SYSRANGE__PART_TO_PART_RANGE_OFFSET, addr_write, addr_read);
 	uint8_t reset = VL6180X_ReadByte(0x016, addr_write, addr_read); //check wether reset over
@@ -257,23 +257,21 @@ void VL6180X_Clear_Interrupt(uint8_t addr_write, uint8_t addr_read) {
 	VL6180X_WR_CMD(0x015, 0x07, addr_write);
 }
 
-void VL6180X_ReadRangeMultiple(const TOF_050C_WRREG regs[],
-                               uint16_t results[], uint8_t count) {
-	for (uint8_t i = 0; i < count; i++) {
+void VL6180X_ReadRangeMultiple(const TOF_050C_WRREG regs[], uint16_t results[], uint8_t count) {
+	// 1. 并行启动所有传感器
+	for (uint8_t i = 0; i < count; i++)
 		VL6180X_Start_Range(regs[i].addr_w, regs[i].addr_r);
-		// osDelay(1);
-		DWT_Delay(0.001);
-	}
-	for (uint8_t i = 0; i < count; i++) {
-		VL6180X_Poll_Range(regs[i].addr_w, regs[i].addr_r);
-		// osDelay(5);
-		DWT_Delay(0.001);
-	}
-	DWT_Delay(0.030);
 
+	// 2. 等一次就够，不用每个传感器单独等
+	DWT_Delay(0.070);  // VL6180X 最快测距 ~10ms，留 50ms 足够全部完成
+
+	// 3. 批量读取
 	for (uint8_t i = 0; i < count; i++) {
-		results[i] = (uint16_t) scaling * VL6180_Read_Range(regs[i].addr_w, regs[i].addr_r);
-		// osDelay(1);
+		// Poll 只是确认一下，大概率已经就绪
+		if (VL6180X_Poll_Range(regs[i].addr_w, regs[i].addr_r) == 0)
+			results[i] = (uint16_t) scaling * VL6180_Read_Range(regs[i].addr_w, regs[i].addr_r);
+		else
+			results[i] = 0xFFFF;
 	}
 }
 
@@ -320,8 +318,8 @@ void multisensor_vl6180x() {
 	HAL_GPIO_WritePin(ID2_GPIO_Port, ID2_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(ID3_GPIO_Port, ID3_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(ID4_GPIO_Port, ID4_Pin, GPIO_PIN_RESET);
-	// HAL_GPIO_WritePin(ID5_GPIO_Port, ID5_Pin, GPIO_PIN_RESET);
-	// HAL_GPIO_WritePin(ID6_GPIO_Port, ID6_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(ID5_GPIO_Port, ID5_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(ID6_GPIO_Port, ID6_Pin, GPIO_PIN_RESET);
 	for (uint8_t address = 0x30; address <= 0x45; address++) {
 		if (address == 0x30) {
 			HAL_GPIO_WritePin(ID1_GPIO_Port, ID1_Pin, GPIO_PIN_SET);
@@ -351,21 +349,21 @@ void multisensor_vl6180x() {
 			VL6180X_Init(0x33 << 1, (0x33 << 1) | 0x01);
 			VL6180X_SetScaling(3, 0x33 << 1, (0x33 << 1) | 0x01);
 		}
-		// else if (address == 0x34)
-		// {
-		//   HAL_GPIO_WritePin(ID5_GPIO_Port, ID5_Pin, GPIO_PIN_SET);
-		//   VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
-		//   VL6180x_ChangeAddress(address);
-		//   VL6180X_Init(0x34 << 1, (0x34 << 1) | 0x01);
-		//   VL6180X_SetScaling(3,0x34 << 1, (0x34 << 1) | 0x01);
-		//
-		// }
-		// else if (address == 0x35)
-		// {                 	 HAL_GPIO_WritePin(ID6_GPIO_Port, ID6_Pin, GPIO_PIN_SET);
-		//   VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
-		//   VL6180x_ChangeAddress(address);
-		//   VL6180X_Init(0x35 << 1, (0x35 << 1) | 0x01);
-		//   VL6180X_SetScaling(3,0x35 << 1, (0x35 << 1) | 0x01);
-		// }
+		else if (address == 0x34)
+		{
+		  HAL_GPIO_WritePin(ID5_GPIO_Port, ID5_Pin, GPIO_PIN_SET);
+		  VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
+		  VL6180x_ChangeAddress(address);
+		  VL6180X_Init(0x34 << 1, (0x34 << 1) | 0x01);
+		  VL6180X_SetScaling(3,0x34 << 1, (0x34 << 1) | 0x01);
+
+		}
+		else if (address == 0x35)
+		{                 	 HAL_GPIO_WritePin(ID6_GPIO_Port, ID6_Pin, GPIO_PIN_SET);
+		  VL6180X_Init(0x29 << 1, (0x29 << 1) | 0x01);
+		  VL6180x_ChangeAddress(address);
+		  VL6180X_Init(0x35 << 1, (0x35 << 1) | 0x01);
+		  VL6180X_SetScaling(3,0x35 << 1, (0x35 << 1) | 0x01);
+		}
 	}
 }

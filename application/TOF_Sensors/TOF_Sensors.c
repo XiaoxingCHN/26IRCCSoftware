@@ -6,6 +6,7 @@
 #include "vl53l0.h"
 #include "message_center.h"
 #include "bsp_iic.h"
+#include "bsp_log.h"
 #include "stdio.h"
 #include "usart.h"
 extern IICInstance *tof_iic; // BSP I2C 实例（定义在 vl53l0.c）
@@ -34,11 +35,13 @@ static Subscriber_t *TOF050C_Sub; // 订阅TOF050C的控制命令
 static TOF050C_Ctrl_Cmd_s TOF050C_Cmd_Recv; // 接收到的控制命令
 static TOF050C_Upload_Data_s TOF050C_Feedback_Data; // 反馈数据
 
-static const TOF_050C_WRREG vl6180x_sensors[4] = {
+static const TOF_050C_WRREG vl6180x_sensors[6] = {
 	{0x60, 0x61}, // 传感器0 (I2C 0x30)
 	{0x62, 0x63}, // 传感器1 (I2C 0x31)
 	{0x64, 0x65}, // 传感器2 (I2C 0x32)
 	{0x66, 0x67}, // 传感器3 (I2C 0x33)
+	{0x68, 0x69},//L
+	{0x6A, 0x6B},//R
 };
 /**
  * @brief TOF050C应用初始化
@@ -76,14 +79,21 @@ void TOF050CTask() {
 
 	// 读取8个传感器的测距数据，前4 TOF050C，后4 TOF200C
 	// TOF050C (VL6180X) 传感器 0-3
-	// VL6180X_ReadRangeMultiple(vl6180x_sensors, TOF050C_Feedback_Data.range_values, 4);
-	TOF050C_Feedback_Data.range_values[0] = VL6180X_ReadRangeSingleMillimeters(0x60, 0x61); // 地址 0x30
-	TOF050C_Feedback_Data.range_values[1] = VL6180X_ReadRangeSingleMillimeters(0x62, 0x63); // 地址 0x31
-	TOF050C_Feedback_Data.range_values[2] = VL6180X_ReadRangeSingleMillimeters(0x64, 0x65); // 地址 0x32
-	TOF050C_Feedback_Data.range_values[3] = VL6180X_ReadRangeSingleMillimeters(0x66, 0x67); // 地址 0x33
-	//两侧从TOF200C改为TOF050C
-	// TOF050C_Feedback_Data.range_values[4] = VL6180X_ReadRangeSingleMillimeters(0x68, 0x69); // 地址 0x34
-	// TOF050C_Feedback_Data.range_values[5] = VL6180X_ReadRangeSingleMillimeters(0x6A, 0x6B); // 地址 0x35
+	VL6180X_ReadRangeMultiple(vl6180x_sensors, TOF050C_Feedback_Data.range_values, 6);
+	for (uint8_t i = 0; i < 6; i++) {
+		if (TOF050C_Feedback_Data.range_values[i] == 0) { // 0通常表示读取失败或无效数据
+		Printf_UART("TOF%dERROR\r\n",i);
+			// Printf_UART("%d\r\n",TOF050C_Feedback_Data.range_values[i]);
+		}
+	}
+	// Printf_UART("%d\r\n",TOF050C_Feedback_Data.range_values[4]);
+	//  TOF050C_Feedback_Data.range_values[0] = VL6180X_ReadRangeSingleMillimeters(0x60, 0x61); // 地址 0x30
+	//  TOF050C_Feedback_Data.range_values[1] = VL6180X_ReadRangeSingleMillimeters(0x62, 0x63); // 地址 0x31
+	//  TOF050C_Feedback_Data.range_values[2] = VL6180X_ReadRangeSingleMillimeters(0x64, 0x65); // 地址 0x32
+	//  TOF050C_Feedback_Data.range_values[3] = VL6180X_ReadRangeSingleMillimeters(0x66, 0x67); // 地址 0x33
+	// // 两侧从TOF200C改为TOF050C
+	//  TOF050C_Feedback_Data.range_values[4] = VL6180X_ReadRangeSingleMillimeters(0x68, 0x69); // 地址 0x34
+	//  TOF050C_Feedback_Data.range_values[5] = VL6180X_ReadRangeSingleMillimeters(0x6A, 0x6B); // 地址 0x35
 	// // TOF200C (VL53L0) 传感器 4-7
 	// TOF050C_Feedback_Data.range_values[4] = VL53L0X_readRangeSingleMillimeters(0x34); // 地址 0x34
 	// TOF050C_Feedback_Data.range_values[5] = VL53L0X_readRangeSingleMillimeters(0x35); // 地址 0x35

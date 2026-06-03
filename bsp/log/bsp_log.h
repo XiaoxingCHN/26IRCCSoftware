@@ -68,5 +68,5 @@ int PrintLog(const char *fmt, ...);
  * @param va 待转换的float
  */
 void Float2Str(char *str, float va);
-
+void Printf_UART(const char *fmt, ...);
 #endif

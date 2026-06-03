@@ -164,6 +164,7 @@ __attribute__((noreturn)) void StartUITASK(void const *argument) {
 		// 每给裁判系统发送一包数据会挂起一次,详见UITask函数的refereeSend()
 		// UITask();
 		VBAT_Monitor = VBATVAL_GET();
+		// Printf_UART("VBAT: %dV\r\n",(int8_t)VBAT_Monitor);
 		if (VBAT_Monitor > 18.f) {
 			AlarmSetStatus(robocmd_alarm, ALARM_OFF);
 			VBAT_Alarm_start = DWT_GetTimeline_ms();
