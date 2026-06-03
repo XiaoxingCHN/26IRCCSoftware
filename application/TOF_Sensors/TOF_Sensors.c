@@ -2,6 +2,8 @@
 // Created by LIMBO on 2026/5/2.
 //
 #include "TOF_Sensors.h"
+
+#include "bsp_dwt.h"
 #include "vl6180x.h"
 #include "vl53l0.h"
 #include "message_center.h"
@@ -48,6 +50,8 @@ static const TOF_050C_WRREG vl6180x_sensors[6] = {
  * 请在开启RTOS之前调用
  */
 void TOF050CInit() {
+	DWT_Delay(1);
+
 	// 注册 TOF 共享 BSP I2C 实例（超时 100ms，替代原先的 HAL 0xffff 超时）
 	IIC_Init_Config_s tof_i2c_conf = {
 		.handle = &hi2c2,

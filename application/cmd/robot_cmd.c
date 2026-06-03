@@ -465,13 +465,17 @@ static void LoadPlatform(void) {
 
 static void VisionBlockJudge(const uint8_t state) {
 	TOFStatusJudge();
-	if (tof_dir != DIR_NONE && state != TRACING) {
-		AGV_GLOBAL_CMD.vx = 200.f;
-		if (tof_dir == DIR_FRONT && (Graysensor_Fetch_Data.sensor_Normalized[4] > 0.8 || Graysensor_Fetch_Data.
-		                             sensor_Normalized[5] > 0.8))
+	// if (vision_recv_data->tracing_id==-1||tof_dir != DIR_NONE && state != TRACING) {
+	// 	AGV_GLOBAL_CMD.vx =-6000.f;
+	// 	if (tof_dir == DIR_FRONT && (Graysensor_Fetch_Data.sensor_Normalized[4] > 0.8 || Graysensor_Fetch_Data.
+	// 	                             sensor_Normalized[5] > 0.8))
+	// 		PfsmSched_Block(&Follow_Vision_Pfsm);
+	// }
+	if (vision_recv_data->tracing_id == -1) {
+			AGV_GLOBAL_CMD.vx = -600.f;
 			PfsmSched_Block(&Follow_Vision_Pfsm);
 	}
-	if (tof_dir != DIR_NONE) PfsmSched_Block(&Follow_Vision_Pfsm); // 如果TOF有障碍物,则阻塞视觉跟随状态机,等待避障完成
+	// if (tof_dir != DIR_NONE) PfsmSched_Block(&Follow_Vision_Pfsm); // 如果TOF有障碍物,则阻塞视觉跟随状态机,等待避障完成
 
 	if (Pfsm_VIsion_last_state != state) {
 		if (Pfsm_VIsion_last_state == TRACING || Pfsm_VIsion_last_state == SEARCH_TRABLE) {
@@ -527,13 +531,15 @@ void StartModeRun() {
 				AGV_GLOBAL_CMD.vx = 0;
 				AGV_State = AGV_State_Running_Auto_ReDown;
 				ReDownStart = HeartbeatTick;
-				speedstarttick= HeartbeatTick;
+				speedstarttick = HeartbeatTick;
 				Printf_UART("Reset1");
 				break;
 			}
-			if (vision_recv_data->Distance_Back<0.25||TOF050C_Fetch_Data.range_values[0]<165.f||TOF050C_Fetch_Data.range_values[3]<165.f)
-				AGV_GLOBAL_CMD.vx=-0.7*ApprochSpeed;
-			else {
+			if (vision_recv_data->Distance_Back < 0.25 || TOF050C_Fetch_Data.range_values[0] < 165.f ||
+			    TOF050C_Fetch_Data.range_values[3] < 165.f)
+				AGV_GLOBAL_CMD.vx = -0.4 * ApprochSpeed;
+			else
+			{
 				AGV_GLOBAL_CMD.vx = -ApprochSpeed;
 				Printf_UART("Victory!!!");
 			}
@@ -572,42 +578,46 @@ void StartModeRun() {
 
 void StartMode_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	// Printf_UART("StartMode_PfsmHandler\r\n");
-	// if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
-	// 	PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
-	// 	// PfsmSched_PostEvent(&Follow_Vision_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
-	//
-	// 	PfsmSched_Block(&StartMode_Pfsm);
-	// }
-	StartModeRun();
+	if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
+		PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+		// PfsmSched_PostEvent(&Follow_Vision_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+
+		PfsmSched_Block(&StartMode_Pfsm);
+	}
+	// StartModeRun();
 }
 
 void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	Printf_UART("ScanPlatform_PfsmHandler\r\n");
-	if (vision_recv_data->cmd_state != SEARCH_TRABLE)
+	if (vision_recv_data->cmd_state != SEARCHING_TRAGET)
 		PfsmSched_PostEvent(&Follow_Vision_Pfsm, PFSM_EVENT_FINDOUT_AIM);
 	Chassis_Speed_CalculateOfGray();
 }
 
 void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	Printf_UART("Follow_Vision_PfsmHandler\r\n");
-	// 视觉跟随模式处理函数
+	// 视觉跟随模式处理函数s
 	// static uint8_t last_state = 0xFF; // 0xFF 表示首次调用
 	float max_gray = GraySensor_GetMaxFiltered();
-	// if (max_gray>1.0) {
-	// 	PfsmSched_PostEvent(&ReloadPlatform_Pfsm,PFSM_EVENT_FALLDOWN_PLATFORM );
-	// }
+	if (max_gray>1.0) {
+		PfsmSched_PostEvent(&ReloadPlatform_Pfsm,PFSM_EVENT_FALLDOWN_PLATFORM );
+	}
 	uint8_t state = (uint8_t) vision_recv_data->cmd_state;
 	VisionBlockJudge(state);
 	switch ((uint8_t) vision_recv_data->cmd_state) {
 		case SEARCHING_TRAGET:
 			Printf_UART("SEARCHING_TRAGET\r\n");
-			AGV_GLOBAL_CMD.vx = 0;
-			// PfsmSched_Block(&Follow_Vision_Pfsm); // 阻塞视觉跟随状态机,等待视觉锁定目标
+			AGV_GLOBAL_CMD.vx = -600.f;
+			PfsmSched_Block(&Follow_Vision_Pfsm); // 阻塞视觉跟随状态机,等待视觉锁定目标
 			break;
 		case TRACING:
 			Printf_UART("TRACING\r\n");
 			AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
-			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * 0.2;
+			if (max_gray > 0.4f)
+				AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED*0.15;
+			// if (vision_recv_data->Distance_Front<0.18) AGV_GLOBAL_CMD.vx=AGV_APPROACH_SPEED*0.3;
+			else
+			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * 0.5;
 			// AGV_GLOBAL_CMD.vx = 0;
 			break;
 		// case SEARCH_TRABLE:
