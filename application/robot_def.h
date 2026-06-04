@@ -26,8 +26,7 @@
 
 #define AGV_APPROACH_SPEED 5*660.f//巡台制动速度
 
-#define AGV_LASER_DISTANCE_FL 200// 前左
-#define AGV_LASER_DISTANCE_FR 200 // 前右
+#define AGV_LASER_DISTANCE_FL 200// 前左#define AGV_LASER_DISTANCE_FR 200 // 前右
 #define AGV_LASER_DISTANCE_BL 200 // 后左
 #define AGV_LASER_DISTANCE_BR 200 // 后右
 

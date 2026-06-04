@@ -365,5 +365,6 @@ void multisensor_vl6180x() {
 		  VL6180X_Init(0x35 << 1, (0x35 << 1) | 0x01);
 		  VL6180X_SetScaling(3,0x35 << 1, (0x35 << 1) | 0x01);
 		}
+		DWT_Delay(0.005);
 	}
 }

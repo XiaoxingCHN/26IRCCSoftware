@@ -9,6 +9,7 @@
 #include "message_center.h"
 #include "bsp_iic.h"
 #include "bsp_log.h"
+#include "master_process.h"
 #include "stdio.h"
 #include "usart.h"
 extern IICInstance *tof_iic; // BSP I2C 实例（定义在 vl53l0.c）
@@ -50,7 +51,7 @@ static const TOF_050C_WRREG vl6180x_sensors[6] = {
  * 请在开启RTOS之前调用
  */
 void TOF050CInit() {
-	DWT_Delay(1);
+	// DWT_Delay(2);
 
 	// 注册 TOF 共享 BSP I2C 实例（超时 100ms，替代原先的 HAL 0xffff 超时）
 	IIC_Init_Config_s tof_i2c_conf = {
@@ -90,6 +91,7 @@ void TOF050CTask() {
 			// Printf_UART("%d\r\n",TOF050C_Feedback_Data.range_values[i]);
 		}
 	}
+	VisionSetLaserRanging(TOF050C_Feedback_Data.range_values[0],TOF050C_Feedback_Data.range_values[3]);
 	// Printf_UART("%d\r\n",TOF050C_Feedback_Data.range_values[4]);
 	//  TOF050C_Feedback_Data.range_values[0] = VL6180X_ReadRangeSingleMillimeters(0x60, 0x61); // 地址 0x30
 	//  TOF050C_Feedback_Data.range_values[1] = VL6180X_ReadRangeSingleMillimeters(0x62, 0x63); // 地址 0x31

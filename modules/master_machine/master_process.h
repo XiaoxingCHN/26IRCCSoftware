@@ -51,15 +51,15 @@ typedef struct
 } Vision_Recv_s;
 
 typedef enum {
-	SEARCHING_TRAGET,
-	TRACING,
-	SEARCH_TRABLE,
-	READY_TO_PUSH,
+	SEARCHING_TRAGET=0,
+	TRACING=1,
+	SEARCH_TRABLE=2,
+	READY_TO_PUSH=3,
 }Robot_Cmd_Vision_e;
 
 typedef enum
 {
-	COLOR_NONE = 0,
+	COLOR_NONE = 00,
 	COLOR_BLUE = 1,
 	COLOR_YELLOW = 2,
 } Enemy_Color_e;
@@ -81,6 +81,11 @@ typedef enum
 	SMALL_AMU_30 = 30,
 } Bullet_Speed_e;
 
+typedef enum {
+	AGV_DOWN=0,
+	AGV_UP=1,
+}AGVMode_e;
+
 typedef struct
 {
 	Enemy_Color_e enemy_color;
@@ -88,11 +93,11 @@ typedef struct
 	Bullet_Speed_e bullet_speed;
 
 	float yaw;
-        float mcu_feed_state;//单片机返回在台上还是台下0台下、1台上
+        float mcu_feed_state;//单片机返回在台上还是台下0台下、1台上对应枚举AGVMode_e
         float laser_ranging_L0;
-        float laser_ranging_L1;
+        // float laser_ranging_L1;
         float laser_ranging_R0;
-        float laser_ranging_R1;
+        // float laser_ranging_R1;
         // float agv_mode;//底盘模式
 } Vision_Send_s;
 #pragma pack()
@@ -132,10 +137,11 @@ void VisionSetAltitude(float yaw);
  *
  * @param laser_ranging_L0 左激光距离
  * @param laser_ranging_L1 左激光距离1
- * @param laser_ranging_R0 右激光距离0
- * @param laser_ranging_R1 右激光距离1
+ * void VIsionSetAGVMode(AGVMode_e agv_mode) {
+ @param laser_ranging_R1 右激光距离1
  */
-void VisionSetLaserRanging(float laser_ranging_L0, float laser_ranging_L1, float laser_ranging_R0, float laser_ranging_R1);
+void VisionSetLaserRanging(float laser_ranging_L0, float laser_ranging_R0);
+void VIsionSetAGVMode(AGVMode_e agv_mode);
 
 /**
  *  @brief 设置发送数据的小车状态

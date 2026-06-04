@@ -38,15 +38,16 @@ void ChassisInit() {
 			.speed_PID =
 			{
 				.Kp =812.4f, // 40
-				.Ki = 22.36f,
-				.Kd = 11.365f,
-				.IntegralLimit = 5000,
+				.Ki = 15.36f,
+				.Kd = 7.36f,
+				.IntegralLimit = 15000,
 				.Improve = PID_Trapezoid_Intergral | PID_Integral_Limit |
 				           PID_Derivative_On_Measurement |
 				           PID_OutputFilter,
+				// .DeadBand = 100.0f,
 				.MaxOut = 20000,
-				.Output_LPF_RC = 0.6989f,
-				.Derivative_LPF_RC = 0.443f,
+				.Output_LPF_RC = 0.7989f,
+				.Derivative_LPF_RC = 0.424f,
 			},
 			.current_PID =
 			{
