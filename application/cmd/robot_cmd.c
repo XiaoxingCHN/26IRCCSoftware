@@ -510,7 +510,7 @@ void StartModeRun() {
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
 			Yaw_offset = IMU_data->Yaw;
 			speedstarttick = HeartbeatTick;
-			if (||(	StartJudge < 80 && StartJudge > 10)) {
+			if (rc_data->rc.dial>330.f||(	StartJudge < 80 && StartJudge > 10)) {
 				AGV_State = AGV_State_Running_Auto_Down;
 				break;
 			}
@@ -524,22 +524,26 @@ void StartModeRun() {
 			speedtick = HeartbeatTick - speedstarttick;
 			AGV_GLOBAL_CMD.wz = 0;
 			AGV_GLOBAL_CMD.target_yaw_angle = Yaw_offset;
-			if (GrayJudge < 0.8f && IMU_data->Roll < 3.f) {
+			if (GrayJudge < 0.8f && IMU_data->Roll < 5.f) {
 				AGV_GLOBAL_CMD.vx = 0;
 				AGV_GLOBAL_CMD.target_yaw_angle = Yaw_offset + 90.f;
 				AGV_State = AGV_State_Running_Auto_Up;
 				break;
 			}
-
-
-			if (vision_recv_data->Distance_Back < 0.25|| TOF050C_Fetch_Data.range_values[0] < 165.f ||
-			    TOF050C_Fetch_Data.range_values[3] < 165.f)
-				AGV_GLOBAL_CMD.vx = -1.0*ApprochSpeed;
-			else {
-				AGV_GLOBAL_CMD.vx = -0.5*ApprochSpeed;
-				Printf_UART("Victory!!!\r\n");
+			// if (vision_recv_data->Distance_Back < 0.25|| TOF050C_Fetch_Data.range_values[0] < 165.f ||
+			//     TOF050C_Fetch_Data.range_values[3] < 165.f)
+			// 	AGV_GLOBAL_CMD.vx = -1.0*ApprochSpeed;
+			// else {
+			// 	AGV_GLOBAL_CMD.vx = -0.5*ApprochSpeed;
+			// 	Printf_UART("Victory!!!\r\n");
+			// }
+			if (speedtick<=800.f) {
+				AGV_GLOBAL_CMD.vx = -2400.f;
 			}
-			if (speedtick >1550.f) {
+			else if (speedtick<=2500.f) {
+				AGV_GLOBAL_CMD.vx = -13000;
+			}
+			else {
 				AGV_GLOBAL_CMD.vx = 0;
 				AGV_State = AGV_State_Running_Auto_ReDown;
 				ReDownStart = HeartbeatTick;
