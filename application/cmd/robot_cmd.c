@@ -166,8 +166,8 @@ void RobotCMDInit() {
 	PfsmSched_Init();
 	PfsmSched_DefaultRegister(&StartMode_Pfsm, StartMode_PfsmHandler, 10);
 	PfsmSched_Register(&ScanPlatform_Pfsm, ScanPlatform_PfsmHandler, 9);
-	PfsmSched_Register(&Follow_Vision_Pfsm, Follow_Vision_PfsmHandler, 8);
-	PfsmSched_Register(&AttackAvoid_Pfsm, AttackAvoid_PfsmHandler, 1);
+	PfsmSched_Register(&Follow_Vision_Pfsm, Follow_Vision_PfsmHandler, 7);
+	PfsmSched_Register(&AttackAvoid_Pfsm, AttackAvoid_PfsmHandler, 8);
 	PfsmSched_Register(&ReloadPlatform_Pfsm, ReloadPlatform_PfsmHandler, 0);
 	Robot_State = ROBOT_READY;
 }
