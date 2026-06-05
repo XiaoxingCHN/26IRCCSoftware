@@ -28,32 +28,32 @@ static GrayCalib_t GrayCalib[8]; // 灰度传感器的校准数据,最多支持6
 void GrayCalibInit() {
 	//取测量值的5%-95%为归一化范围，忽略小于5%和大于95%的极端值对归一化的影响
 	// X0通道数据
-	GrayCalib[0].black_base = 3827; // 灰度0
-	GrayCalib[0].white_base = 1976;
+	GrayCalib[0].black_base = 3874; // 灰度0
+	GrayCalib[0].white_base = 1487;;
 	//X1通道数据（暂时未使用）
-	GrayCalib[1].black_base = 3862; // 灰度1
-	GrayCalib[1].white_base = 2190;
+	GrayCalib[1].black_base = 3900; // 灰度1
+	GrayCalib[1].white_base = 1685;
 	// X2通道数据
-	GrayCalib[2].black_base = 3828; // 灰度2
-	GrayCalib[2].white_base = 1916;
+	GrayCalib[2].black_base = 3866; // 灰度2
+	GrayCalib[2].white_base = 1363;
 	// X3通道数据
-	GrayCalib[3].black_base = 3835; // 灰度3
-	GrayCalib[3].white_base = 1916;
+	GrayCalib[3].black_base = 3882; // 灰度3
+	GrayCalib[3].white_base = 1397;
 	// X4通道数据
-	GrayCalib[4].black_base = 3807; // 灰度4
-	GrayCalib[4].white_base = 1782;
+	GrayCalib[4].black_base = 3863; // 灰度4
+	GrayCalib[4].white_base = 1287;
 
 	// X5通道数据
-	GrayCalib[5].black_base = 3815; // 灰度5
-	GrayCalib[5].white_base = 1836;
+	GrayCalib[5].black_base = 3865; // 灰度5
+	GrayCalib[5].white_base = 1321;
 
 	// X6通道数据
-	GrayCalib[6].black_base = 3864; // 灰度6
-	GrayCalib[6].white_base = 2197;
+	GrayCalib[6].black_base = 3899; // 灰度6
+	GrayCalib[6].white_base = 1683;
 
 	//X7通道数据（暂时未使用）
-	GrayCalib[7].black_base = 3855; // 灰度7
-	GrayCalib[7].white_base = 2129;
+	GrayCalib[7].black_base = 3891; // 灰度7
+	GrayCalib[7].white_base = 1589;
 }
 
 /*

@@ -90,17 +90,17 @@ void ChassisInit() {
 	Motor_Lb = DJIMotorInit(&Chassis_Motor_config);
 
 	PID_Init_Config_s Yaw_Angle_Compensator_Config = {
-		.Kp = 2.5f,     // 从 4.0 降下来，避免饱和
+		.Kp = 2.0f,     // 从 4.0 降下来，避免饱和
 		.Ki = 0.0f,
 		.Kd = 0.1f,     // 适当降低
 		// 对于角度这类由于跨越 ±180° 会发生瞬间跳变的量，绝对不能开启 PID_Derivative_On_Measurement（测量值微分）
 		// 否则跨越 180 的瞬间测量值会跳变 360，导致 D 项算出几万的数值，让电机疯摇乃至转圈
 		.Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_OutputFilter|PID_DerivativeFilter,
 		.IntegralLimit = 2000,
-		.MaxOut = 5000,
+		.MaxOut = 500,
 		.DeadBand = 5.0f,
 		.Output_LPF_RC = 0.01f,
-		.Derivative_LPF_RC = 0.0f,
+		.Derivative_LPF_RC = 0.01f,
 	};
 
 	PID_Init_Config_s Yaw_Angle_Velocity_Compensator_Config = {
