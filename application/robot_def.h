@@ -52,6 +52,9 @@
 #define StartFlagDistance 25.f //适用于侧边TOF测距启动的距离参数
 #define ApprochSpeed 4499.f
 
+#define ATTACK_ARROUND 100.f
+#define ATTACK_GROUND 100.f
+
 #define GYRO2GIMBAL_DIR_YAW 1   // 陀螺仪数据相较于云台的yaw的方向,1为相同,-1为相反
 #define GYRO2GIMBAL_DIR_PITCH 1 // 陀螺仪数据相较于云台的pitch的方向,1为相同,-1为相反
 #define GYRO2GIMBAL_DIR_ROLL 1  // 陀螺仪数据相较于云台的roll的方向,1为相同,-1为相反
@@ -99,6 +102,18 @@ typedef enum
 	DIR_LEFT_PLUS_BACK,
 	DIR_ALL,
 }TOF_Flag_e;
+
+typedef  enum {
+	ATTACK_NONE,
+	ATTACK_FRONT,
+	ATTACK_FRONT_LEFT,
+	ATTACK_LEFT,
+	ATTACK_BACK_LEFT,
+	ATTACK_BACK,
+	ATTACK_BACK_RIGHT,
+	ATTACK_RIGHT,
+	ATTACK_FRONT_RIGHT,
+}TOF_Attack_e;
 
 // 底盘模式设置
 /**

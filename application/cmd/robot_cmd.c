@@ -69,7 +69,12 @@ static const TOF_Flag_e tof_edge_table[16] = {
 
 };
 static TOF_Flag_e tof_dir = DIR_NONE;
-uint8_t tof_idx;
+static uint8_t tof_idx;
+static const TOF_Attack_e tof_attack_table[]={
+	[0x00]=ATTACK_NONE,
+};
+static TOF_Attack_e Attack_dir;
+static uint8_t attack_idx;
 
 static AGV_Control_Cmd_s AGV_GLOBAL_CMD = {
 	.target_yaw_angle = 0.0f,
@@ -104,6 +109,31 @@ void Follow_Vision_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event);
 void AttackAvoid_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event);
 
 void ReloadPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event);
+
+/**
+ * @brief 判断相应位置的状态
+ */
+static void TOFStatusJudge(void) {
+	tof_idx = 0;
+	// 0x04 0x08  0x02 0x01
+	// FR01 FL02 BL00 BR03
+	if (TOF050C_Fetch_Data.range_values[0] > TOF050C_EDGE)
+		tof_idx |= (1 << 1);
+	if (TOF050C_Fetch_Data.range_values[1] > TOF050C_EDGE)
+		tof_idx |= (1 << 2);
+	if (TOF050C_Fetch_Data.range_values[2] > TOF050C_EDGE)
+		tof_idx |= (1 << 3);
+	if (TOF050C_Fetch_Data.range_values[3] > TOF050C_EDGE)
+		tof_idx |= (1 << 0);
+	tof_dir = tof_edge_table[tof_idx];
+}
+
+/**
+ * @brief 根据TOF模块计算周围障碍
+ */
+void ArroundTOFStatusJudge(void) {
+
+}
 
 void RobotCMDInit() {
 	IMU_data = INS_Init(); // 获取陀螺仪数据指针
@@ -271,6 +301,7 @@ void RobotCMDTask() {
 	SubGetMessage(TOF050C_Feed_Sub, (void *) &TOF050C_Fetch_Data);
 
 	/*Control Code Begin*/
+	TOFStatusJudge();
 	VisionSend_Data();
 	VisionSend();
 	RemoteControlSet();
@@ -283,38 +314,6 @@ void RobotCMDTask() {
 	PubPushMessage(TOF050C_Cmd_Pub, (void *) &TOF050C_Cmd_Send);
 	HeartbeatTick = DWT_GetTimeline_ms() - HeartbeatTick_Start;
 }
-
-/**
- * @brief 用于检测是否已经冲上台
- * @return false 没有冲上去
- * @return true  已经冲上去
- */
-static bool UporDoenJudge(void) {
-	// if ()
-}
-
-/**
- * @brief 判断相应位置的状态
- */
-void TOFStatusJudge(void) {
-	tof_idx = 0;
-	// 0x04 0x08  0x02 0x01
-	// FR01 FL02 BL00 BR03
-	if (TOF050C_Fetch_Data.range_values[0] > TOF050C_EDGE)
-		tof_idx |= (1 << 1);
-	if (TOF050C_Fetch_Data.range_values[1] > TOF050C_EDGE)
-		tof_idx |= (1 << 2);
-	if (TOF050C_Fetch_Data.range_values[2] > TOF050C_EDGE)
-		tof_idx |= (1 << 3);
-	if (TOF050C_Fetch_Data.range_values[3] > TOF050C_EDGE)
-		tof_idx |= (1 << 0);
-	tof_dir = tof_edge_table[tof_idx];
-}
-
-void ArroundTOFStatusJudge(void) {
-
-}
-
 /**
  * @brief 根据灰度传感器计算速度
  */
@@ -335,7 +334,7 @@ static void Chassis_Speed_CalculateOfGray(void) {
 	speed_norm = speed_norm * speed_norm * speed_norm; // 三次方
 	// AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED * speed_norm;
 
-	TOFStatusJudge();
+	// TOFStatusJudge();
 	switch (tof_dir) {
 		case DIR_BACK_RIGHT: //右后
 			AGV_GLOBAL_CMD.vx = AGV_APPROACH_SPEED;
@@ -454,7 +453,7 @@ static void Chassis_Speed_CalculateOfGray(void) {
 			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn - 40.f;
 		if (max_gray < 0.19) {
 			tof_dir = DIR_NONE;
-			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn +170.f;
+			AGV_GLOBAL_CMD.target_yaw_angle = Temp_Yaw_turn + 170.f;
 			// AGV_GLOBAL_CMD.vx = 0.f;
 			if (abs(IMU_data->Yaw - AGV_GLOBAL_CMD.target_yaw_angle) < 20.f)
 				Front_Flag = false;
@@ -466,7 +465,7 @@ static void Chassis_Speed_CalculateOfGray(void) {
 }
 
 static void VisionBlockJudge(const uint8_t state) {
-	TOFStatusJudge();
+	// TOFStatusJudge();
 	// if (vision_recv_data->tracing_id==-1||tof_dir != DIR_NONE && state != TRACING) {
 	// 	AGV_GLOBAL_CMD.vx =-6000.f;
 	// 	if (tof_dir == DIR_FRONT && (Graysensor_Fetch_Data.sensor_Normalized[4] > 0.8 || Graysensor_Fetch_Data.
@@ -496,7 +495,7 @@ static float ReDown = 0;
 void StartModeRun() {
 	uint16_t StartJudge = TOF050C_Fetch_Data.range_values[4];
 	GrayJudge = GraySensor_GetMaxFiltered();
-	TOFStatusJudge();
+	// TOFStatusJudge();
 	static float Yaw_offset;
 
 	// if (switch_is_down(rc_data[TEMP].rc.switch_right)) {
@@ -510,7 +509,7 @@ void StartModeRun() {
 			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw;
 			Yaw_offset = IMU_data->Yaw;
 			speedstarttick = HeartbeatTick;
-			if (rc_data->rc.dial>330.f||(	StartJudge < 80 && StartJudge > 10)) {
+			if (rc_data->rc.dial > 330.f || (StartJudge < 80 && StartJudge > 10)) {
 				AGV_State = AGV_State_Running_Auto_Down;
 				break;
 			}
@@ -537,10 +536,10 @@ void StartModeRun() {
 			// 	AGV_GLOBAL_CMD.vx = -0.5*ApprochSpeed;
 			// 	Printf_UART("Victory!!!\r\n");
 			// }
-			if (speedtick<=800.f) {
+			if (speedtick <= 800.f) {
 				AGV_GLOBAL_CMD.vx = -2400.f;
 			}
-			else if (speedtick<=2500.f) {
+			else if (speedtick <= 2500.f) {
 				AGV_GLOBAL_CMD.vx = -13000;
 			}
 			else {
@@ -555,10 +554,10 @@ void StartModeRun() {
 		case AGV_State_Running_Auto_Up:
 
 			// if (GrayJudge < 0.1f) {
-				AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw+30.f;
-				PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
-				// AGV_State = AGV_State_Stop;
-				PfsmSched_Block(&StartMode_Pfsm); // 阻塞启动模式状态机
+			AGV_GLOBAL_CMD.target_yaw_angle = IMU_data->Yaw + 30.f;
+			PfsmSched_PostEvent(&ScanPlatform_Pfsm, PFSM_EVENT_FINISH_LOADPLATFORM);
+			// AGV_State = AGV_State_Stop;
+			PfsmSched_Block(&StartMode_Pfsm); // 阻塞启动模式状态机
 			// }
 			break;
 		case AGV_State_Running_Auto_ReDown:
@@ -572,11 +571,11 @@ void StartModeRun() {
 			// 	Printf_UART("ReDown Stop1\r\n");
 			// 	break;
 			// }
-			if (vision_recv_data->Distance_Front < 0 && GrayJudge > .9f&&IMU_data->Roll < 5.f) {
-				AGV_GLOBAL_CMD.vx =0;
+			if (vision_recv_data->Distance_Front < 0 && GrayJudge > .9f && IMU_data->Roll < 5.f) {
+				AGV_GLOBAL_CMD.vx = 0;
 				AGV_GLOBAL_CMD.target_yaw_angle = Yaw_offset;
 				AGV_State = AGV_State_Running_Auto_Down;
-				Printf_UART("%dReDown Stop2\r\n",vision_recv_data->Distance_Front);
+				Printf_UART("%dReDown Stop2\r\n", vision_recv_data->Distance_Front);
 				break;
 			}
 			break;
@@ -600,6 +599,7 @@ void ScanPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	Printf_UART("ScanPlatform_PfsmHandler\r\n");
 	if (vision_recv_data->cmd_state != SEARCHING_TRAGET)
 		PfsmSched_PostEvent(&Follow_Vision_Pfsm, PFSM_EVENT_FINDOUT_AIM);
+
 	Chassis_Speed_CalculateOfGray();
 }
 
@@ -656,15 +656,14 @@ void ReloadPlatform_PfsmHandler(Pfsm_t *pfsm, PfsmEventId_e event) {
 	Printf_UART("ReloadPlatform\r\n");
 	VIsionSetAGVMode(AGV_DOWN);
 	// AGV_GLOBAL_CMD.vx = 0;
-	if (max_gray < 0.75f&&IMU_data->Roll < 5.f) {
-		AGV_GLOBAL_CMD.vx=0;
+	if (max_gray < 0.75f && IMU_data->Roll < 5.f) {
+		AGV_GLOBAL_CMD.vx = 0;
 		Printf_UART("BlockRelodPlatform\r\n");
 		PfsmSched_Block(&ReloadPlatform_Pfsm);
 	}
-	if (vision_recv_data->cmd_state==SEARCH_TRABLE) {
+	if (vision_recv_data->cmd_state == SEARCH_TRABLE) {
 		AGV_GLOBAL_CMD.target_yaw_angle = vision_recv_data->target_yaw;
 		AGV_GLOBAL_CMD.vx = vision_recv_data->car_speed;
 		Printf_UART("visionRelodPlatDorm\r\n");
 	}
-
 }
